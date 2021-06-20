@@ -36,7 +36,8 @@ def train(opt):
         print ('using multi-gpu')
         model = torch.nn.DataParallel(model, device_ids=device_ids)
     model.to(device=cuda)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=opt.learning_rate, momentum=0, weight_decay=0)
+    # optimizer = torch.optim.RMSprop(model.parameters(), lr=opt.learning_rate, momentum=0, weight_decay=0)
+    optimizer = torch.optim.SGD(model.parameters(), lr=opt.learning_rate)
     lr = opt.learning_rate
     criterion = torch.nn.L1Loss()
     summary_writer = SummaryWriter(opt.logdir)
@@ -47,10 +48,7 @@ def train(opt):
         model.load_state_dict(torch.load(opt.load_checkpoint_path, map_location=cuda))
 
     if opt.continue_train:
-        if opt.resume_epoch < 0:
-            model_path = '%s/%s/model_latest'% (opt.checkpoints_path, opt.name)
-        else:
-            model_path = '%s/%s/model_epoch_%d'% (opt.checkpoints_path, opt.name, opt.resume_epoch)
+        model_path = '%s/%s/model_latest'% (opt.checkpoints_path, opt.name)
         print ('resuming from: %s'% model_path)
         model.load_state_dict(torch.load(model_path, map_location=cuda))
 
@@ -62,15 +60,12 @@ def train(opt):
     # training
     total_iters = 0
     start_epoch = 0 if not opt.continue_train else max(opt.resume_epoch, 0)
-    start_epoch = 0
-    prev_tensor = None
     for epoch in range(start_epoch, opt.num_epoch):
         epoch_start_time = time.time()
-        train_idx = epoch # TODO remove this.
 
         model.train()
         iter_data_time = time.time()
-        for idx, train_data in enumerate(train_data_loader):
+        for train_idx, train_data in enumerate(train_data_loader):
             iter_start_time = time.time()
 
             # retrieve the data
@@ -78,19 +73,13 @@ def train(opt):
             calib_tensor = train_data['calib'].to(device=cuda)
             sample_tensor = train_data['samples'].to(device=cuda)
             label_tensor = train_data['labels'].to(device=cuda)
-            # print ('Label min: {} | Label max: {} | Label median: {}'.format(
-            #     torch.min(label_tensor), torch.max(label_tensor), torch.median(label_tensor)))
-
-            # visualise_NDF(label_tensor[0].detach().cpu().numpy().reshape(32, 32, 32))
-
+            
             # reshape multiview tensor
             image_tensor = image_tensor.view(
                 image_tensor.shape[0] * image_tensor.shape[1],
                 image_tensor.shape[2], image_tensor.shape[3], image_tensor.shape[4])
 
-            projected_sample_tensor = projection(sample_tensor.permute(0, 2, 1), calib_tensor).permute(0, 2, 1)
-
-            pred, latent_vec = model(image_tensor, projected_sample_tensor)
+            pred, latent_vec = model(image_tensor, sample_tensor)
 
             # print ('Pred min: {} | Pred max: {} | Pred median: {} | Label min: {} | Label max: {} | Label median: {}'.format(
             #         torch.min(pred), torch.max(pred), torch.median(pred), torch.min(label_tensor), torch.max(label_tensor), torch.median(label_tensor)))
@@ -117,15 +106,14 @@ def train(opt):
                         iter_start_time - iter_data_time, iter_net_time - iter_start_time, int(eta // 60), int(eta - 60 * (eta // 60))))
                 summary_writer.add_scalar('Loss/train', error, total_iters)
 
-            if train_idx % opt.freq_save == 0 and train_idx != 0 and error < 0.20:
-            # if (epoch % opt.freq_save == 0 and True) and error < 0.6:
+            if total_iters % opt.freq_save == 0:
                 torch.save(model.state_dict(), '%s/%s/model_latest'% (opt.checkpoints_path, opt.name))
 
             iter_data_time = time.time()
             total_iters += 1
 
         # update learning rate
-        lr = adjust_learning_rate(optimizer, epoch, lr, opt.schedule, opt.gamma)
+        # lr = adjust_learning_rate(optimizer, epoch, lr, opt.schedule, opt.gamma)
 
 if __name__ == '__main__':
     train(opt)          

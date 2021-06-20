@@ -41,6 +41,7 @@ class BaseOptions():
         g_train.add_argument('--freq_save', type=int, default=100, help='frequency of save checkpoints')
         g_train.add_argument('--freq_eval', type=int, default=5000, help='frequency of evaluation')
         g_train.add_argument('--logdir', type=str, default='train_log', help='tensorboard training log')
+        parser.add_argument('--num_samples', type=int, default=10000, help='number of sampled points')
 
         # Testing related
         g_test = parser.add_argument_group('Testing')

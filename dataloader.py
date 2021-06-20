@@ -19,19 +19,23 @@ from utils import make_rotate, visualise_NDF
 from sdf import create_grid
 
 def load_trimesh(root_dir):
-    folders = os.listdir(root_dir)
-    # folders = ['A1YENASWUJWB']
+    # folders = os.listdir(root_dir)
+    folders = ['A1YENASWUJWB'] ## Overfit on 1 shirt
     meshs = {}
     for i, f in enumerate(folders):
         sub_name = f
-        meshs[sub_name] = trimesh.load(os.path.join(root_dir, f, 'shirt_mesh_r_tmp.obj'))
+        mesh = trimesh.load(os.path.join(root_dir, f, 'shirt_mesh_r_tmp.obj'))
+        ## Rescale
+        scene_obj = trimesh.Scene(mesh)
+        scene_obj = scene_obj.scaled(0.9/scene_obj.scale)
+        mesh = scene_obj.geometry['shirt_mesh_r_tmp.obj']
+        mesh.rezero()
+        meshs[sub_name] = mesh
     return meshs
 
 
 def save_samples_truncted_prob(fname, points, prob):
     ''' Save the visualization of sampling to a ply file '''
-    # prob[prob<0.01] = 0
-    # prob[prob>=0.01] = 1
     red = prob.reshape([-1, 1])/prob.max() * 255
     green = red
     blue = np.zeros(red.shape)
@@ -62,8 +66,8 @@ class GarmentDataset(Dataset):
         self.num_sample_inout = self.opt.num_sample_inout # no. of sampling points
 
 
-        self.yaw_list = list(range(0, 360, 1))
-        # self.yaw_list = [0]
+        # self.yaw_list = list(range(0, 360, 1))
+        self.yaw_list = [0] ## Overfit on 1 view
         self.pitch_list = [0]
         self.subjects = self.get_subjects()
 
@@ -81,8 +85,8 @@ class GarmentDataset(Dataset):
         self.mesh_dic = load_trimesh(self.obj)
 
     def get_subjects(self):
-        all_subjects = os.listdir(self.render)
-        # all_subjects = ['A1YENASWUJWB']
+        # all_subjects = os.listdir(self.render)
+        all_subjects = ['A1YENASWUJWB']
         # all_subjects = ['A1YENASWUJWB', 'A2UOBZJIFYZI']
         val_subjects = np.loadtxt('val.txt', dtype=str)
 
@@ -164,26 +168,28 @@ class GarmentDataset(Dataset):
         vertices = mesh.vertices
         b_max = vertices.max(0)
         b_min = vertices.min(0)
-        delta = (b_max - b_min) / 7.0
-        b_min = b_min - delta
-        b_max = b_max + delta
+        delta = 0.1
 
         resolution = 32
-        # print ('before scaling --> b_min: {}, b_max: {}'.format(b_min, b_max))
-        samples, calibs = create_grid(resolution, resolution, resolution, b_min, b_max)
-        # print ('after scaling --> b_min: {}, b_max: {}'.format(samples.reshape(3, -1).min(1), samples.reshape(3, -1).max(1)))
-        # print ('calib: {}'.format(calibs))
+        samples, calibs = create_grid(resolution, resolution, resolution, b_min-delta, b_max+delta)
         assert list(samples.shape) == [3, resolution, resolution, resolution], 'unexpected shape: {}'.format(samples.shape)
         samples = samples.reshape(3, -1).T # Nx3
 
-        labels = np.abs(igl.signed_distance(samples, mesh.vertices, mesh.faces)[0]) # Calculate UDF
+        # Selecting random points
+        local_state = np.random.RandomState()
+        idx = local_state.choice(samples.shape[0], 10000) # Number of samples
+        samples = samples[idx]
 
+        labels = np.abs(igl.signed_distance(samples, mesh.vertices, mesh.faces)[0]) # Calculate UDF
+        # smpl_mesh = kaolin.rep.TriangleMesh.from_tensors(torch.Tensor(mesh.vertices.astype(np.float64)).cuda(), torch.Tensor(mesh.faces, dtype=torch.long).cuda())
+        # smpl_mesh_sdf = kaolin.conversions.trianglemesh_to_sdf(smpl_mesh)
+        # labels = smpl_mesh_sdf(torch.Tensor(samples).cuda())
+
+        # visualise_NDF(labels.reshape(resolution, resolution, resolution))
         # from skimage import measure
         # from utils import save_obj_mesh
-        # verts, faces, normals, values = measure.marching_cubes_lewiner(labels.reshape(128, 128, 128), 0.1)
-        # print ('initial verts shape: ', verts.shape, np.matmul(calibs[:3, :3], verts.T).shape)
+        # verts, faces, normals, values = measure.marching_cubes_lewiner(labels.reshape(resolution, resolution, resolution), 0.001)
         # verts = np.matmul(calibs[:3, :3], verts.T) + calibs[:3, 3:4]
-        # print ('verts shape: {}, min: {}, max: {}'.format(verts.shape, verts.min(1), verts.max(1)))
         # save_obj_mesh('checking.obj', verts.T, faces)
         # save_samples_truncted_prob('%s.ply'%subject, samples, labels)
 

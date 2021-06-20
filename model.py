@@ -21,13 +21,6 @@ class MultiViewSk(nn.Module):
 
 	def forward(self, uvmap, points):
 		_B = uvmap.shape[0]
-
-		## Old HourGlass code
-		# uvmap_representation = self.encoder(uvmap)[0][-1] # not training intermediate representation as in PIFu
-		# uvmap_rep = uvmap_representation.reshape(_B, self.opt.hourglass_dim, -1).mean(dim=-1)
-		# latent_vec = self.transform_uvmap_func(uvmap_rep.view(-1, self.opt.num_views, uvmap_rep.shape[1]).mean(dim=1))
-
-		## New ResNet code
 		uvmap_representation = self.encoder(uvmap).reshape(_B, -1)
 		assert list(uvmap_representation.shape) == [_B, 2048]
 		latent_vec = self.transform_uvmap_func(uvmap_representation)

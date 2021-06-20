@@ -118,7 +118,7 @@ def gen_mesh(opt, model, cuda, data, save_path, use_octree=True, num_samples=100
     label_tensor = data['labels'].to(device=cuda)
     print (label_tensor.shape)
     gt_ndf = label_tensor.detach().cpu().numpy().reshape(resolution, resolution, resolution)
-    visualise_NDF(label_tensor.detach().cpu().numpy().reshape(resolution, resolution, resolution))
+    # visualise_NDF(label_tensor.detach().cpu().numpy().reshape(resolution, resolution, resolution))
 
     coords, mat = create_grid(resolution, resolution, resolution,
             b_min, b_max, transform=None)
@@ -149,12 +149,17 @@ def gen_mesh(opt, model, cuda, data, save_path, use_octree=True, num_samples=100
 
     # do marching cubes
     # try:
-    verts, faces, normals, values = measure.marching_cubes_lewiner(ndf, 0.07)
+    verts, faces, normals, values = measure.marching_cubes_lewiner(ndf, 0.1)
     # mat = calib_tensor[0].detach().cpu().numpy() # TODO remove, required for GT only
     print ('initial verts shape: {}, multiplied: {}, mat: {}'.format(verts.shape, np.matmul(mat[:3, :3], verts.T).shape, mat[:, 3:4].shape))
     verts = np.matmul(mat[:3, :3], verts.T) + mat[:3, 3:4]
     print ('shape of calib: {}, mat: {}, verts: {}, save_path: {}'.format(calib_tensor.shape, mat.shape, verts.shape, save_path))
-    save_obj_mesh(save_path, verts.T, faces)
+
+    # Smoothing
+    import trimesh
+    new_mesh = trimesh.Trimesh(vertices=verts.T, faces=faces)
+    smoothed = trimesh.smoothing.filter_laplacian(new_mesh,lamb=0.5)
+    save_obj_mesh(save_path, smoothed.vertices, smoothed.faces)
     # except:
     #     print ('error cannot marching cubes')
     #     return -1
