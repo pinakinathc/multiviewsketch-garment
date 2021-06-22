@@ -187,7 +187,7 @@ class GarmentDataset(Dataset):
         # labels = smpl_mesh_sdf(torch.Tensor(samples).cuda())
 
         # visualise_NDF(labels.reshape(resolution, resolution, resolution))
-        if self.is_train:
+        if not self.is_train:
             from skimage import measure
             from utils import save_obj_mesh
             verts, faces, normals, values = measure.marching_cubes_lewiner(labels.reshape(resolution, resolution, resolution), 0.01)

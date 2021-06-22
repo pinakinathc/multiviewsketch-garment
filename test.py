@@ -90,7 +90,7 @@ def train(opt):
         from utils import save_obj_mesh
         verts, faces, normals, values = measure.marching_cubes_lewiner(pred.detach().cpu().numpy().reshape(opt.resolution, opt.resolution, opt.resolution), 0.02)
         verts = (np.matmul(calibs[:3, :3], verts.T) + calibs[:3, 3:4]).T
-        save_path = os.path.join(os.getcwd(), opt.results_path, opt.name, train_data['name']+'_pred.obj')
+        save_path = os.path.join(os.getcwd(), opt.results_path, opt.name, train_data['name'][0]+'_pred.obj')
         save_obj_mesh(save_path, verts, faces)
 
 
