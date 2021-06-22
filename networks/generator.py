@@ -49,7 +49,6 @@ class Network(nn.Module):
             x_position.append(torch.sin(f*point_encoding))
             x_position.append(torch.cos(f*point_encoding))
         x_position = torch.cat(x_position, 1) # Shape: Nx36
-        print (x_position.shape)
 
         uvmap_representation = uvmap_representation.unsqueeze(-1).repeat(1, 1, _numpoints)
         _in = torch.cat((x_position, uvmap_representation), 1)

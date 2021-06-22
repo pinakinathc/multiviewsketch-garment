@@ -1,0 +1,7 @@
+*.png
+*.obj
+*.ply
+*__pycache__*
+*.bkp
+logs*
+checkpoints/*
