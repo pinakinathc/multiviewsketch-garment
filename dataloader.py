@@ -13,8 +13,8 @@ import torch
 from PIL.ImageFilter import GaussianBlur
 import trimesh
 import math
-import igl # calculates signed distance field
-# import kaolin # calculates SDF
+# import igl # calculates signed distance field
+import kaolin # calculates SDF
 from utils import make_rotate, visualise_NDF
 from sdf import create_grid
 
@@ -181,16 +181,19 @@ class GarmentDataset(Dataset):
             idx = local_state.choice(samples.shape[0], 10000) # Number of samples
             samples = samples[idx]
 
-        labels = np.abs(igl.signed_distance(samples, mesh.vertices, mesh.faces)[0]) # Calculate UDF
-        # smpl_mesh = kaolin.rep.TriangleMesh.from_tensors(torch.Tensor(mesh.vertices.astype(np.float64)).cuda(), torch.Tensor(mesh.faces, dtype=torch.long).cuda())
-        # smpl_mesh_sdf = kaolin.conversions.trianglemesh_to_sdf(smpl_mesh)
-        # labels = smpl_mesh_sdf(torch.Tensor(samples).cuda())
+        # labels = np.abs(igl.signed_distance(samples, mesh.vertices, mesh.faces)[0]) # Calculate UDF
+
+        cuda = torch.device('cuda:%d'%self.opt.gpu_id)
+        kaolin_sample = torch.Tensor(samples).to(device=cuda).unsqueeze(0)
+        kaolin_vertices = torch.Tensor(np.array(mesh.vertices).astype(np.float)).to(device=cuda).unsqueeze(0)
+        kaolin_faces = torch.Tensor(np.array(mesh.faces).astype(np.long)).to(device=cuda).long()
+        labels = kaolin.metrics.trianglemesh.point_to_mesh_distance(kaolin_sample, kaolin_vertices, kaolin_faces)[0].cpu().numpy()
 
         # visualise_NDF(labels.reshape(resolution, resolution, resolution))
         if not self.is_train:
             from skimage import measure
             from utils import save_obj_mesh
-            verts, faces, normals, values = measure.marching_cubes_lewiner(labels.reshape(resolution, resolution, resolution), 0.01)
+            verts, faces, normals, values = measure.marching_cubes_lewiner(labels.reshape(resolution, resolution, resolution), 1e-3)
             verts = np.matmul(calibs[:3, :3], verts.T) + calibs[:3, 3:4]
             save_path = os.path.join(os.getcwd(), self.opt.results_path, self.opt.name, subject+'_gt')
             save_obj_mesh(save_path+'.obj', verts.T, faces)
