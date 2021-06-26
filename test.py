@@ -10,7 +10,6 @@ from model import MultiViewSk
 from options import BaseOptions
 import numpy as np
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard  import SummaryWriter
 from utils import visualise_NDF
 from sdf import create_grid
 
@@ -42,7 +41,6 @@ def train(opt):
     optimizer = torch.optim.SGD(model.parameters(), lr=opt.learning_rate)
     lr = opt.learning_rate
     criterion = torch.nn.L1Loss()
-    summary_writer = SummaryWriter(opt.logdir)
 
     # load checkpoints
     if opt.load_checkpoint_path is not None:
