@@ -1,0 +1,53 @@
+##################
+#
+# Example Job for HTCondor
+#
+####################
+
+#---------------------------------------------
+# Name your batch so it's easy to distinguish in the q.
+JobBatchName = "Adobe Multiview Garment Modeling"
+
+# --------------------------------------
+# Executable and its arguments
+executable    =  run.sh
+# arguments     =
+
+# -----------------------------------
+# Universe (vanilla, docker)
+universe         = docker
+docker_image     = registry.eps.surrey.ac.uk/pinakinathc:latest
+
+# -------------------------------------
+# Event, out and error logs
+log    = c$(cluster).p$(process).log
+output = c$(cluster).p$(process).out
+error  = c$(cluster).p$(process).error
+
+# -----------------------------------
+# File Transfer, Input, Output
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT_OR_EVICT
+
+environment = "mount=/vol/research/sketchcaption/"
+
+# ------------------------------------
+requirements  = ( HasStornext == true ) && ( CUDACapability >= 6.2 )
+
+# -------------------------------------
+# Resources
+request_GPUs     = 1
++GPUMem          = 7000
+request_CPUs     = 12
+request_memory = 16G
+
+#This job will complete in less than 1 hours
+#NB interactive jobs are limited to 4 hours
++JobRunTime = 12
+
+#This job can checkpoint
++CanCheckpoint = true
+
+# -----------------------------------
+# Queue commands
+queue 1
