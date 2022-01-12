@@ -39,45 +39,15 @@ class GarmentDataset(torch.utils.data.Dataset):
         print ('Total number of garments found: %d'%len(self.all_garments))
         if not self.evaluate:
             print ('Training set')
-            self.all_garments = list(set(self.all_garments) - set(val_garments))[:10]
+            self.all_garments = list(set(self.all_garments) - set(val_garments))
         else:
             print ('Testing set')
             self.all_garments = list(val_garments)
-        # self.all_garments = ['watertight_100']
-        # self.all_garments = ['W8EXCGDKFZST']
+        # self.all_garments = list(val_garments)[:21]
+        # self.all_garments = ['313', '324', '24', '26']
         print ('Number of garments used: %d'%len(self.all_garments))
 
-        self.mesh_list = {}
-        self.mesh_centroid = {}
-        self.mesh_scale = {}
         self.azi_list = list(range(0, 360, 10))
-
-        tmp_list_garments = []
-        print ('Starting to read all meshes. Please wait...')
-        start_time = time.time()
-        for garment in tqdm.tqdm(self.all_garments):
-            mesh_path = glob.glob(os.path.join(
-                self.data_dir, 'GEO', 'OBJ', garment, '*.obj'))[0]
-            mesh = trimesh.load(mesh_path)
-
-            self.mesh_centroid[garment] = mesh.centroid
-            mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
-            scene = trimesh.Scene(mesh)
-            self.mesh_scale[garment] = scene.scale
-            scene = scene.scaled(1.5/scene.scale)
-            mesh = scene.geometry[list(scene.geometry.keys())[0]]
-
-            # scene = trimesh.Scene(mesh)
-            # scene = scene.scaled(1.5/scene.scale)
-            # mesh = scene.geometry[list(scene.geometry.keys())[0]]
-            # mesh.rezero()
-            # mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
-
-
-            self.mesh_list[garment] = mesh
-            tmp_list_garments.append(garment)
-        print ('Time taken to read all meshe: ', time.time() - start_time)
-        self.all_garments = tmp_list_garments
 
     def __len__(self):
         if self.evaluate:
@@ -90,19 +60,25 @@ class GarmentDataset(torch.utils.data.Dataset):
         local_state = np.random.RandomState()
 
         garment = self.all_garments[index]
-        mesh = self.mesh_list[garment]
 
         all_img_tensor = [] # Store image from input sketch
         all_azi_tensor = []
         all_pos_emb_feat = [] # Store view or positional encoding
         all_xyz = [] # Store xyz points
         all_sdf = [] # Store SDF values
+        all_mask = [] # Store Mask values to simulate random views
 
         # Randomly select n views
         azi_list = local_state.choice(self.azi_list, self.num_views).tolist()
+        # azi_list = local_state.choice(self.azi_list, 1).tolist()
+        # delta_azi = (36 // self.num_views) * 10
+        # for i in range(self.num_views-1):
+        #     azi_list.append((azi_list[-1] + delta_azi)%360)
+        # azi_list.append((azi_list[0]+180)%360)
 
-        for azi in azi_list:
+        views = local_state.randint(1, self.num_views)
 
+        for id_azi, azi in enumerate(azi_list):
             # Read image sketch for a view
             img_path = os.path.join(self.data_dir, 'RENDER', garment, '%d_0_00.png'%azi)
             img = Image.open(img_path).convert('RGBA').split()[-1].convert('RGB')
@@ -120,54 +96,59 @@ class GarmentDataset(torch.utils.data.Dataset):
             all_pos_emb_feat.append(pos_emb_feat)
 
             """ Random Sampling """
-            if not self.use_partial:
-                surface_xyz, _ = trimesh.sample.sample_surface(mesh, 3*self.num_points//4)
+            data_list = []
+            key_list = []
+            if id_azi==0 and not self.use_partial:
+                points_data = np.load(os.path.join(
+                    self.data_dir, 'all_mesh_points', '%s.npy'%garment), allow_pickle=True)
+                key_list = ['inside', 'outside', 'random']
             else:
-                partial_mesh = trimesh.load(os.path.join(
-                    self.data_dir, 'partial_view_ply', garment, '%d.ply'%azi
-                ))
-                surface_xyz = self.resize_ply(
-                    partial_mesh, self.mesh_scale[garment], self.mesh_centroid[garment])
-                surface_xyz = surface_xyz[local_state.choice(
-                    np.arange(surface_xyz.shape[0]), 3*self.num_points//4)]
-            near_xyz = surface_xyz + local_state.normal(scale=0.03, size=surface_xyz.shape)
+                if local_state.uniform() > 0.9:
+                    closest_shirts = np.loadtxt(os.path.join(
+                        self.data_dir, 'closest_mesh', '%s.txt'%garment
+                    ), dtype=str).tolist()
+                    prob_weights = 3**(np.arange(len(closest_shirts), 0, -1))
+                    prob_weights = prob_weights / prob_weights.sum()
+                    tmp_garment = local_state.choice(closest_shirts, 1, p=prob_weights)[0]
+                    key_list = ['inside', 'outside', 'inside']
+                else:
+                    tmp_garment = garment
+                    key_list = ['inside', 'outside', 'random']
+                points_data = np.load(os.path.join(
+                    self.data_dir, 'partial_mesh_points', tmp_garment, '%d.npy'%azi
+                ), allow_pickle=True)
+            for keys in key_list:
+                data = points_data.item().get(keys)
+                data_list.append(data[local_state.choice(data.shape[0], 3*self.num_points//4)])
+            data = np.concatenate(data_list, 0)
+            local_state.shuffle(data)
+            xyz = data[:, :3]
+            sdf = data[:, 3][:, np.newaxis]
 
-            B_MAX = near_xyz.max(0)
-            B_MIN = near_xyz.min(0)
-            length = (B_MAX - B_MIN)
-            far_xyz = local_state.rand(self.num_points//4, 3) * length + B_MIN
-            xyz = np.concatenate([near_xyz, far_xyz], 0)
-            local_state.shuffle(xyz)
+            if id_azi >= views:
+                mask = np.zeros_like(sdf)
+            else:
+                mask = np.ones_like(sdf)
 
-            # Calculate SDF of sampled points
-            sdf = signed_distance(xyz, mesh.vertices, mesh.faces)[0][:, np.newaxis]
-
-            # Sample random points
             all_xyz.append(xyz)
-
-            # Compute SDF
             all_sdf.append(sdf)
+            all_mask.append(mask)
 
         all_img_tensor = torch.cat(all_img_tensor, dim=0)
         all_azi_tensor = torch.cat(all_azi_tensor, dim=0)
         all_pos_emb_feat = Variable(torch.FloatTensor(all_pos_emb_feat))
         all_xyz = Variable(torch.FloatTensor(all_xyz))
         all_sdf = Variable(torch.FloatTensor(all_sdf))
+        all_mask = Variable(torch.FloatTensor(all_mask))
         
         return (
             all_img_tensor,
             all_pos_emb_feat,
             all_xyz,
             all_sdf,
+            all_mask,
             all_azi_tensor
         )
-
-    def resize_ply(self, mesh, scale, centroid):
-        mesh = trimesh.Trimesh(mesh.vertices - centroid)
-        scene = trimesh.Scene(mesh)
-        scene = scene.scaled(1.5/scale)
-        mesh = scene.geometry[list(scene.geometry.keys())[0]]
-        return mesh.vertices
 
 
 if __name__ == '__main__':
@@ -179,18 +160,18 @@ if __name__ == '__main__':
         val_path=os.path.join(opts.data_dir, 'val.txt'),
         num_views=opts.num_views,
         num_points=opts.num_points,
-        # use_partial=True
+        use_partial=True,
+        evaluate=True
     )
 
     count = 0
-    for all_img, all_pos_emb_feat, all_xyz, all_sdf, all_azi_tensor in dataset:
+    for all_img, all_pos_emb_feat, all_xyz, all_sdf, all_mask, all_azi in dataset:
         for idx in range(opts.num_views):
             print ('shape of points: {}, sdf: {}'.format(
-                all_xyz[idx].shape, all_sdf[idx].shape
-            ))
+                all_xyz[idx].shape, all_sdf[idx].shape))
+            print ('max: {}, min: {}'.format(all_sdf[idx].max(), all_sdf[idx].min()))
             save_vertices_ply(
                 os.path.join('output', '%d.ply'%count),
-                all_xyz[idx], all_sdf[idx]
-            )
+                all_xyz[idx], all_sdf[idx])
             count += 1
             input ('check')

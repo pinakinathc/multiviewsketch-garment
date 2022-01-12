@@ -67,8 +67,8 @@ def fill_in_camera_positions():
     delta_r = 0.1
 
     # azi_origins = [180, 300, 60]
-    # azi_origins = [180, 0]
-    azi_origins = [60]
+    azi_origins = [180, 0]
+    # azi_origins = [180]
     elev_origin = 10
     r_origin = 1.5
 
@@ -109,11 +109,12 @@ def render(filepath, output_dir, filename=None):
     bpy.ops.object.delete(use_global=False)
 
     ###### Import Obj #########
-    # bpy.ops.import_scene.obj(filepath=filepath, axis_forward='-X')
-    bpy.ops.import_scene.obj(filepath=os.path.join(
-        '/vol/research/sketchcaption/adobe/training_data/siggraph15_body_up/GEO/OBJ',
-        filename, filepath+'.obj'
-        ), axis_forward='-X')
+    print (filepath)
+    bpy.ops.import_scene.obj(filepath=filepath, axis_forward='-X')
+    # bpy.ops.import_scene.obj(filepath=os.path.join(
+    #     '/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/siga15/GEO/OBJ',
+    #     filename, filepath+'.obj'
+    #     ), axis_forward='-X')
     obj_object = bpy.context.selected_objects[0]
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
     maxDimension = 0.56
@@ -175,31 +176,41 @@ def render(filepath, output_dir, filename=None):
     obj_object.data.auto_smooth_angle = np.pi/180.0 * 90
     obj_object.cycles.shadow_terminator_offset = 0.9
     obj_object.modifiers.new(name='Smooth', type='SMOOTH')
-    obj_object.modifiers['Smooth'].iterations = 5
+    # obj_object.modifiers['Smooth'].iterations = 5
 
     freestyle_settings = bpy.context.scene.view_layers['View Layer'].freestyle_settings
     freestyle_settings.use_culling = True
     freestyle_settings.use_smoothness = True
-    freestyle_settings.use_suggestive_contours = False # True
+    freestyle_settings.use_suggestive_contours = True
     freestyle_settings.crease_angle = np.random.uniform(np.pi/180.0*120, np.pi/180.0*134)
+    freestyle_settings.use_advanced_options = True
+    freestyle_settings.sphere_radius = 0.0
+    freestyle_settings.kr_derivative_epsilon = 0.001
+    
     bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
     bpy.data.linestyles['LineStyle'].use_length_max = True
     bpy.data.linestyles['LineStyle'].use_length_min = True
-    bpy.data.linestyles['LineStyle'].length_min = 11.1 # 17 # 11.1
+    bpy.data.linestyles['LineStyle'].length_min = 3 # 17 # 11.1
     bpy.data.linestyles['LineStyle'].use_chain_count = False
     bpy.data.linestyles['LineStyle'].use_nodes = False
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
+
 
     freestyle_settings.linesets['LineSet'].select_border = True
     freestyle_settings.linesets['LineSet'].select_silhouette = True
     freestyle_settings.linesets['LineSet'].select_crease = True
     freestyle_settings.linesets['LineSet'].select_contour = True
-    freestyle_settings.linesets['LineSet'].select_external_contour = False
-    freestyle_settings.linesets['LineSet'].select_suggestive_contour = False # True
+    freestyle_settings.linesets['LineSet'].select_external_contour = True
+    freestyle_settings.linesets['LineSet'].select_suggestive_contour = True
     freestyle_settings.linesets['LineSet'].edge_type_combination = 'OR'
     freestyle_settings.linesets['LineSet'].select_edge_mark = False
     freestyle_settings.linesets['LineSet'].linestyle.thickness =  np.random.uniform(1, 1.5)
-    freestyle_settings.use_suggestive_contours = False # True
-    freestyle_settings.use_smoothness = True
 
     bpy.context.scene.render.image_settings.file_format = 'PNG'
 
@@ -225,8 +236,8 @@ if __name__ == '__main__':
 
     print ('Options:\n', opt)
 
-    obj_shirt_list = np.loadtxt(opt.input_dir, dtype=str)
-    # obj_shirt_list = glob.glob(opt.input_dir)
+    # obj_shirt_list = np.loadtxt(opt.input_dir, dtype=str)
+    obj_shirt_list = glob.glob(opt.input_dir)
 
     # with Pool(processes=opt.num_process) as pool:
     #     pool.map(render, obj_shirt_list)

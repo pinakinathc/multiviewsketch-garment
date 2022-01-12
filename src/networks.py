@@ -158,19 +158,29 @@ class AlignUpdater(nn.Module):
 
         self.layer = nn.Sequential(
             nn.Linear(img_feat_dim+azi_feat_dim, self.kdim//2),
+            nn.BatchNorm1d(self.kdim//2),
             nn.ReLU(),
             nn.Linear(self.kdim//2, self.kdim),
+            nn.BatchNorm1d(self.kdim),
             nn.ReLU()
         )
 
         self.feat_emb = nn.Sequential(
             nn.Linear(self.kdim//2, self.kdim//2),
-            nn.ReLU()
+            nn.BatchNorm1d(self.kdim//2),
+            nn.ReLU(),
+            nn.Linear(self.kdim//2, self.kdim//2),
+            # nn.BatchNorm1d(self.kdim//2),
+            # nn.ReLU()
         )
 
         self.alpha_emb = nn.Sequential(
             nn.Linear(self.kdim//2, self.kdim//2),
-            nn.Softmax(dim=1)
+            nn.BatchNorm1d(self.kdim//2),
+            nn.ReLU(),
+            nn.Linear(self.kdim//2, self.kdim//2),
+            # nn.BatchNorm1d(self.kdim//2),
+            # nn.ReLU()
         )
 
     def forward(self, comb_feat):
@@ -198,8 +208,10 @@ class AlphaClassifier(nn.Module):
     def __init__(self, feat_dim=512):
         super(AlphaClassifier, self).__init__()
         self.classifier = nn.Sequential(
-            nn.Linear(feat_dim, 36),
-            nn.ReLU()
+            nn.Linear(feat_dim, feat_dim//2),
+            nn.BatchNorm1d(feat_dim//2),
+            nn.ReLU(),
+            nn.Linear(feat_dim//2, 36),
         )
     
     def forward(self, alpha):

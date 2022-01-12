@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-# bash Miniconda3-latest-Linux-x86_64.sh -b -p
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b -p
 
 source ~/.bashrc
 source /vol/research/sketchcaption/miniconda/etc/profile.d/conda.sh

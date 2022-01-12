@@ -4,12 +4,21 @@ import numpy as np
 from PIL import Image
 import trimesh
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from pytorch3d.loss.chamfer import chamfer_distance
 from igl import signed_distance
 from skimage import measure
-from .extract_image_feature import get_vector
 
-def save_vertices_ply(fname, points, prob):
+
+def new_activation():
+	return nn.Sequential(
+		nn.Hardshrink(lambd=1.0),
+		nn.ReLU()
+	)
+
+
+def save_vertices_ply(fname, points, prob=None):
 	'''
 	Save the visualization of sampling to a ply file.
 	Red points represent positive predictions.
@@ -19,6 +28,8 @@ def save_vertices_ply(fname, points, prob):
 	:param prob: [N, 1] array of predictions in the range [0~1]
 	:return:
 	'''
+	if prob is None:
+		prob = np.ones((points.shape[0], 1))
 	r = (prob > 0).reshape([-1, 1]) * 255
 	g = (prob < 0).reshape([-1, 1]) * 255
 	b = np.zeros(r.shape)

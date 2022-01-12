@@ -29,7 +29,8 @@ def get_normals(obj_path):
 	sdf = sdf.reshape((reso, reso, reso))
 	verts, faces, normals, values = measure.marching_cubes(sdf, 0.0)
 
-	view_ids = [180, 300, 60]
+	# view_ids = [180, 300, 60]
+	view_ids = [180, 0]
 
 	for view_id in view_ids:
 		ray_direction = np.array(

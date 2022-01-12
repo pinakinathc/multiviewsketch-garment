@@ -66,8 +66,8 @@ def fill_in_camera_positions():
     delta_elev_min = 5
     delta_r = 0.1
 
-    azi_origins = np.linspace(0, 359, num_base_viewpoints)
-    # azi_origins = [180, 60, 240]
+    # azi_origins = np.linspace(0, 359, num_base_viewpoints)
+    azi_origins = np.linspace(0, 350, 36)
     elev_origin = 10
     r_origin = 1.5
 
@@ -101,19 +101,19 @@ def render(filepath):
     folder_name = os.path.split(filepath)[-1][:-4]
 
     obj_path = os.path.join(opt.output_dir, 'GEO', 'OBJ', folder_name)
-    smooth_obj_path = os.path.join(opt.output_dir, 'GEO', 'SMOOTH_OBJ', folder_name)
+    # smooth_obj_path = os.path.join(opt.output_dir, 'GEO', 'SMOOTH_OBJ', folder_name)
     render_path = os.path.join(opt.output_dir, 'RENDER', folder_name)
     svg_path = os.path.join(opt.output_dir, 'SVG', folder_name)
     mask_path = os.path.join(opt.output_dir, 'MASK', folder_name)
 
     os.makedirs(obj_path, exist_ok=True)
-    os.makedirs(smooth_obj_path, exist_ok=True)
+    # os.makedirs(smooth_obj_path, exist_ok=True)
     os.makedirs(render_path, exist_ok=True)
     os.makedirs(svg_path, exist_ok=True)
     os.makedirs(mask_path, exist_ok=True)
 
     # copy obj file
-    cmd = 'cp %s %s' % (filepath, obj_path)
+    cmd = "cp '%s' '%s'" % (filepath, obj_path)
     os.system(cmd)
 
     # clean the default blender scene
@@ -183,7 +183,7 @@ def render(filepath):
     obj_object.data.auto_smooth_angle = np.pi/180.0 * 90
     obj_object.cycles.shadow_terminator_offset = 0.9
     obj_object.modifiers.new(name='Smooth', type='SMOOTH')
-    obj_object.modifiers['Smooth'].iterations = 5
+    # obj_object.modifiers['Smooth'].iterations = 5
     bpy.ops.export_scene.obj(filepath=os.path.join(mask_path, 'smooth'),
         filter_glob='*.obj', axis_forward='-X')
 
@@ -192,24 +192,33 @@ def render(filepath):
     freestyle_settings.use_smoothness = True
     freestyle_settings.use_suggestive_contours = True
     freestyle_settings.crease_angle = np.random.uniform(np.pi/180.0*120, np.pi/180.0*134)
+    freestyle_settings.use_advanced_options = True
+    freestyle_settings.sphere_radius = 0.0
+    freestyle_settings.kr_derivative_epsilon = 0.001
+
     bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
     bpy.data.linestyles['LineStyle'].use_length_max = True
     bpy.data.linestyles['LineStyle'].use_length_min = True
-    bpy.data.linestyles['LineStyle'].length_min = 11.1
+    bpy.data.linestyles['LineStyle'].length_min = 3
     bpy.data.linestyles['LineStyle'].use_chain_count = False
     bpy.data.linestyles['LineStyle'].use_nodes = False
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
+    bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
+    bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
 
     freestyle_settings.linesets['LineSet'].select_border = True
     freestyle_settings.linesets['LineSet'].select_silhouette = True
     freestyle_settings.linesets['LineSet'].select_crease = True
     freestyle_settings.linesets['LineSet'].select_contour = True
-    freestyle_settings.linesets['LineSet'].select_external_contour = False
+    freestyle_settings.linesets['LineSet'].select_external_contour = True
     freestyle_settings.linesets['LineSet'].select_suggestive_contour = True
     freestyle_settings.linesets['LineSet'].edge_type_combination = 'OR'
     freestyle_settings.linesets['LineSet'].select_edge_mark = False
     freestyle_settings.linesets['LineSet'].linestyle.thickness = np.random.uniform(1, 1.5)
-    freestyle_settings.use_suggestive_contours = True
-    freestyle_settings.use_smoothness = True
 
     bpy.context.scene.render.image_settings.file_format = 'PNG'
 
@@ -227,22 +236,7 @@ def render(filepath):
         bpy.context.scene.render.filepath = os.path.join(render_path, str(int(azi))+'_0_00')
         bpy.context.scene.svg_export.use_svg_export = False
         bpy.ops.render.render(write_still = True)
-
-    ######## Render Mask ############
-    bpy.context.scene.render.use_freestyle = False
-    bpy.context.scene.view_layers['View Layer'].use_solid = True
-    bpy.context.scene.view_layers['View Layer'].use_ao = True
-    bpy.context.scene.view_layers['View Layer'].use_volumes = True
-    bpy.context.scene.view_layers['View Layer'].use_strand = True
-    bpy.context.scene.view_layers['View Layer'].use_pass_object_index = True
-
-    for azi, elev, xx, yy, zz in zip(azimuths, elevations, x_pos, y_pos, z_pos):
-        obj_camera.location = (xx, yy, zz)
-        look_at(obj_camera, center)
-
-        bpy.context.scene.render.filepath = os.path.join(mask_path, str(int(azi))+'_0_00')
-        bpy.ops.render.render(write_still = True)
-
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create realistic 2D render sketch from 3D')
@@ -256,16 +250,17 @@ if __name__ == '__main__':
 
     # list_filenames = ['T7UNJRFVTMZV', 'L9UVRMFHQWVK']
     # obj_shirt_list = [os.path.join(opt.input_dir, filename, 'shirt_mesh_r.obj') for filename in list_filenames]
+    # obj_shirt_list = np.loadtxt(os.path.join(opt.output_dir, 'val.txt'), dtype=str)[:21]
+    # obj_shirt_list = [os.path.join(
+    #     os.path.split(os.path.split(opt.input_dir)[0])[0], item, '%s.obj'%item) for item in obj_shirt_list]
     obj_shirt_list = sorted(glob.glob(opt.input_dir))
-    count = 0
 
     # Skip files already rendered
     new_obj_shirt_list = []
     for filepath in obj_shirt_list:
-        # folder_name = os.path.split(filepath)[0]
         folder_name = os.path.split(filepath)[-1][:-4]
-        mask_path = os.path.join(opt.output_dir, 'MASK', folder_name)
-        if os.path.exists(os.path.join(mask_path, '359_0_00.png')):
+        render_path = os.path.join(opt.output_dir, 'RENDER', folder_name)
+        if os.path.exists(os.path.join(render_path, '350_0_00.png')):
             print ('skipping already rendered object...')
             continue
         else:

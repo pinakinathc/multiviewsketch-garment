@@ -14,7 +14,7 @@ parser.add_argument('--exp_name', type=str,
 parser.add_argument('--data_dir', type=str,
 	default='/vol/research/sketchcaption/adobe/multiview_modeling/data/body_up/',
 	help='enter path to training data')
-parser.add_argument('--num_points', type=int, default=2048,
+parser.add_argument('--num_points', type=int, default=4096,
 	help='enter number of sample points to train at each iteration')
 parser.add_argument('--num_views', type=int, default=3,
 	help='enter number of views to train the model')
@@ -24,9 +24,10 @@ parser.add_argument('--num_views', type=int, default=3,
 # ---
 
 parser.add_argument('--batch_size', type=int, default=4, help='batch size for training')
-parser.add_argument('--num_workers', type=int, default=7, help='dataloader # of threads used')
+parser.add_argument('--num_workers', type=int, default=12, help='dataloader # of threads used')
 parser.add_argument('--device', type=int, nargs='+', default=[0], help='multi-gpu')
 parser.add_argument('--output_dir', type=str, default='output/experiment', help='dir to save/load')
+parser.add_argument('--partial', action='store_true')
 
 # ---
 # Logging Options
