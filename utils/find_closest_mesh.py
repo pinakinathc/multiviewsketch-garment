@@ -2,6 +2,7 @@
 
 import os
 import numpy as np
+import glob
 import tqdm
 import torch
 import trimesh
@@ -23,8 +24,8 @@ def process_similar(list_shirts):
 	all_objs = []
 	print ('loading meshes ...')
 	for shirtname in tqdm.tqdm(list_shirts):
-		shirtpath = os.path.join(
-			opts.data_dir, "GEO", "OBJ", shirtname, "%s.obj"%shirtname)
+		shirtpath = glob.glob(os.path.join(
+			opts.data_dir, "GEO", "OBJ", shirtname, "*.obj"))[0]
 		obj = trimesh.load(shirtpath)
 		obj = mesh_resize(obj)
 		obj_tensor = torch.tensor(obj.vertices, dtype=torch.float32).unsqueeze(0)

@@ -63,7 +63,7 @@ if __name__ == '__main__':
         auto_select_gpus=True,
         benchmark=True,
         val_check_interval=1000,
-        max_steps=100000,
+        max_steps=700000,
         logger=logger,
         callbacks=[checkpoint_callback],
         resume_from_checkpoint=ckpt_path

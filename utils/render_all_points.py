@@ -14,12 +14,12 @@ parser.add_argument('--data_dir', type=str, help='Path to all Meshes')
 opts = parser.parse_args()
 
 if __name__ == '__main__':
-    output_dir = os.path.join(opt.data_dir, 'all_mesh_points')
+    output_dir = os.path.join(opts.data_dir, 'all_mesh_points')
     os.makedirs(output_dir, exist_ok=True)
     local_state = np.random.RandomState()
 
     # Get all garments path
-    for mesh_path in tqdm.tqdm(glob.glob(os.path.join(opts.mesh_dir, 'GEO', 'OBJ', '*', '*.obj'))):
+    for mesh_path in tqdm.tqdm(glob.glob(os.path.join(opts.data_dir, 'GEO', 'OBJ', '*', '*.obj'))):
         mesh_name = os.path.split(mesh_path)[0]
         mesh_name = os.path.split(mesh_name)[-1]
         mesh = trimesh.load(mesh_path)
