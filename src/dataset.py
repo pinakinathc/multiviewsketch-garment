@@ -107,7 +107,8 @@ class GarmentDataset(torch.utils.data.Dataset):
                     closest_shirts = np.loadtxt(os.path.join(
                         self.data_dir, 'closest_mesh', '%s.txt'%garment
                     ), dtype=str).tolist()
-                    prob_weights = 3**(np.arange(len(closest_shirts), 0, -1))
+                    closest_shirts = closest_shirts[:10]
+                    prob_weights = 3**np.arange(len(closest_shirts), 0, -1)
                     prob_weights = prob_weights / prob_weights.sum()
                     tmp_garment = local_state.choice(closest_shirts, 1, p=prob_weights)[0]
                     key_list = ['inside', 'outside', 'inside']
@@ -137,9 +138,9 @@ class GarmentDataset(torch.utils.data.Dataset):
         all_img_tensor = torch.cat(all_img_tensor, dim=0)
         all_azi_tensor = torch.cat(all_azi_tensor, dim=0)
         all_pos_emb_feat = Variable(torch.FloatTensor(all_pos_emb_feat))
-        all_xyz = Variable(torch.FloatTensor(all_xyz))
-        all_sdf = Variable(torch.FloatTensor(all_sdf))
-        all_mask = Variable(torch.FloatTensor(all_mask))
+        all_xyz = Variable(torch.FloatTensor(np.array(all_xyz)))
+        all_sdf = Variable(torch.FloatTensor(np.array(all_sdf)))
+        all_mask = Variable(torch.FloatTensor(np.array(all_mask)))
         
         return (
             all_img_tensor,
