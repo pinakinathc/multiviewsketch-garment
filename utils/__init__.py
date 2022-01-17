@@ -11,10 +11,6 @@ from igl import signed_distance
 from skimage import measure
 
 
-def new_activation(alpha):
-	return F.hardshrink(alpha, lambd=1.0)
-	
-
 def save_vertices_ply(fname, points, prob=None):
 	'''
 	Save the visualization of sampling to a ply file.

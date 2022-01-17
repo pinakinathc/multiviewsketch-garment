@@ -5,7 +5,6 @@ import torch
 from torch.autograd import Variable
 from src.networks import AlignUpdater, Decoder, Encoder, AlphaClassifier
 import pytorch_lightning as pl
-from utils import new_activation
 
 class GarmentModel(pl.LightningModule):
     def __init__(self):
