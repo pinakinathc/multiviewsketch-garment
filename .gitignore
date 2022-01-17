@@ -10,3 +10,6 @@ saved_model*
 output*
 vis_obj*
 *.txt
+*.log
+*.error
+*.out

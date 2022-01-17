@@ -6,12 +6,11 @@
 
 #---------------------------------------------
 # Name your batch so it's easy to distinguish in the q.
-JobBatchName = "Adobe Multiview Garment Modeling"
+JobBatchName = "Adobe Multiview Train"
 
 # --------------------------------------
 # Executable and its arguments
-executable    =  run.sh
-# arguments     =
+executable    = run.sh
 
 # -----------------------------------
 # Universe (vanilla, docker)
@@ -27,9 +26,8 @@ error  = c$(cluster).p$(process).error
 # -----------------------------------
 # File Transfer, Input, Output
 should_transfer_files = YES
-when_to_transfer_output = ON_EXIT_OR_EVICT
 
-environment = "mount=/vol/research/sketchcaption/"
+environment = "mount=/vol/research/sketchcaption,/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/"
 
 # ------------------------------------
 requirements  = ( HasStornext == true ) && ( CUDACapability >= 6.2 )
@@ -37,17 +35,40 @@ requirements  = ( HasStornext == true ) && ( CUDACapability >= 6.2 )
 # -------------------------------------
 # Resources
 request_GPUs     = 1
-+GPUMem          = 7000
-request_CPUs     = 12
-request_memory = 16G
++GPUMem          = 10000
+request_CPUs     = 3
+request_memory = 12096
 
 #This job will complete in less than 1 hours
 #NB interactive jobs are limited to 4 hours
-+JobRunTime = 12
++JobRunTime = 24
 
 #This job can checkpoint
 +CanCheckpoint = true
 
 # -----------------------------------
 # Queue commands
+
+# arguments = python -m utils.render_data --input_dir=../adobe-dataset/shirt_dataset_rest/*/shirt_mesh_r_tmp.obj --output_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/training_data/wang18/
+# queue 1
+
+# arguments = python -m utils.render_data --input_dir=../adobe-dataset/duygu_dataset/sigasia15/*/*.obj --output_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/training_data/siga15
+# queue 1
+
+arguments = python train_A.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=new_model_A_siga15_full --partial
+queue 1
+
+arguments = python train_B.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=new_model_B_siga15_full --partial
+queue 1
+
+arguments = python train_old.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=old_model_siga15_full
+queue 1
+
+arguments = python train_A.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=new_model_A_wang_full --partial
+queue 1
+
+arguments = python train_B.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=new_model_B_wang_full --partial
+queue 1
+
+arguments = python train_old.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=old_model_wang_full
 queue 1

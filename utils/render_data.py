@@ -37,12 +37,26 @@ def iterateTillInsideBounds(val, bounds, origin, mean, std, random_state):
     return val
 
 
-def find_longest_diagonal(imported):
+def find_longest_diagonal_old(imported):
     local_bbox_center = 0.125 * sum((Vector(b) for b in imported.bound_box), Vector())
     ld = 0.0
     for v in imported.bound_box:
         lv = Vector(local_bbox_center) - Vector(v)
         ld = max(ld, lv.length)
+    return ld
+
+
+def find_longest_diagonal(imported):
+    points = np.array([Vector(b) for b in imported.bound_box])
+    points = points.max(axis=0) - points.min(axis=0)
+    return points.max()
+
+
+def compute_longest_diagonal(mesh_path):
+    bpy.ops.import_scene.obj(filepath=mesh_path, axis_forward='-X')
+    obj_object = bpy.context.selected_objects[0]
+    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+    ld = find_longest_diagonal(obj_object)
     return ld
 
 
@@ -97,20 +111,17 @@ def render(filepath):
     global opt
 
     ####### Init Setup #########
-    # folder_name = os.path.split(filepath)[0]
-    folder_name = os.path.split(filepath)[-1][:-4]
+    folder_name = os.path.split(filepath)[0]
+    folder_name = os.path.split(folder_name)[-1]
 
     obj_path = os.path.join(opt.output_dir, 'GEO', 'OBJ', folder_name)
     # smooth_obj_path = os.path.join(opt.output_dir, 'GEO', 'SMOOTH_OBJ', folder_name)
     render_path = os.path.join(opt.output_dir, 'RENDER', folder_name)
     svg_path = os.path.join(opt.output_dir, 'SVG', folder_name)
-    mask_path = os.path.join(opt.output_dir, 'MASK', folder_name)
 
     os.makedirs(obj_path, exist_ok=True)
-    # os.makedirs(smooth_obj_path, exist_ok=True)
     os.makedirs(render_path, exist_ok=True)
     os.makedirs(svg_path, exist_ok=True)
-    os.makedirs(mask_path, exist_ok=True)
 
     # copy obj file
     cmd = "cp '%s' '%s'" % (filepath, obj_path)
@@ -124,13 +135,15 @@ def render(filepath):
     bpy.ops.import_scene.obj(filepath=filepath, axis_forward='-X')
     obj_object = bpy.context.selected_objects[0]
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-    maxDimension = 0.56
-    ld = find_longest_diagonal(obj_object)
-    scaleFactor = maxDimension / ld
+    maxDimension = 1.0
+    scaleFactor = maxDimension / max_ld
     obj_object.scale = (scaleFactor, scaleFactor, scaleFactor)
-
     center = Vector((0.0, 0.0, 0.0))
     obj_object.location = center
+
+    # # Export resized OBJ
+    # bpy.ops.export_scene.obj(filepath=os.path.join(obj_path, '%s.obj'%folder_name),
+    #     filter_glob='*.obj', axis_forward='-X')
 
     ###### Add a camera ########
     bpy.ops.object.camera_add()
@@ -184,8 +197,6 @@ def render(filepath):
     obj_object.cycles.shadow_terminator_offset = 0.9
     obj_object.modifiers.new(name='Smooth', type='SMOOTH')
     # obj_object.modifiers['Smooth'].iterations = 5
-    bpy.ops.export_scene.obj(filepath=os.path.join(mask_path, 'smooth'),
-        filter_glob='*.obj', axis_forward='-X')
 
     freestyle_settings = bpy.context.scene.view_layers['View Layer'].freestyle_settings
     freestyle_settings.use_culling = True
@@ -199,16 +210,16 @@ def render(filepath):
     bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
     bpy.data.linestyles['LineStyle'].use_length_max = True
     bpy.data.linestyles['LineStyle'].use_length_min = True
-    bpy.data.linestyles['LineStyle'].length_min = 3
+    bpy.data.linestyles['LineStyle'].length_min = 1
     bpy.data.linestyles['LineStyle'].use_chain_count = False
     bpy.data.linestyles['LineStyle'].use_nodes = False
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
     bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
     bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
 
     freestyle_settings.linesets['LineSet'].select_border = True
     freestyle_settings.linesets['LineSet'].select_silhouette = True
@@ -223,14 +234,15 @@ def render(filepath):
     bpy.context.scene.render.image_settings.file_format = 'PNG'
 
     center = Vector((0.0, 0.0, 0.0))
+
     for azi, elev, xx, yy, zz in zip(azimuths, elevations, x_pos, y_pos, z_pos):
         obj_camera.location = (xx, yy, zz)
         look_at(obj_camera, center)
 
-        # Render SVG
-        bpy.context.scene.render.filepath = os.path.join(svg_path, str(int(azi))+'_0_00')
-        bpy.context.scene.svg_export.use_svg_export = True
-        bpy.ops.render.render(write_still = False)
+        # # Render SVG
+        # bpy.context.scene.render.filepath = os.path.join(svg_path, str(int(azi))+'_0_00')
+        # bpy.context.scene.svg_export.use_svg_export = True
+        # bpy.ops.render.render(write_still = False)
 
         # Render PNG
         bpy.context.scene.render.filepath = os.path.join(render_path, str(int(azi))+'_0_00')
@@ -248,11 +260,6 @@ if __name__ == '__main__':
 
     print ('Options:\n', opt)
 
-    # list_filenames = ['T7UNJRFVTMZV', 'L9UVRMFHQWVK']
-    # obj_shirt_list = [os.path.join(opt.input_dir, filename, 'shirt_mesh_r.obj') for filename in list_filenames]
-    # obj_shirt_list = np.loadtxt(os.path.join(opt.output_dir, 'val.txt'), dtype=str)[:21]
-    # obj_shirt_list = [os.path.join(
-    #     os.path.split(os.path.split(opt.input_dir)[0])[0], item, '%s.obj'%item) for item in obj_shirt_list]
     obj_shirt_list = sorted(glob.glob(opt.input_dir))
 
     # Skip files already rendered
@@ -267,6 +274,11 @@ if __name__ == '__main__':
             new_obj_shirt_list.append(filepath)
     obj_shirt_list = new_obj_shirt_list
 
+    global max_ld # Make LD global since it would be constant for entire dataset
     with Pool(processes=opt.num_process) as pool:
-        pool.map(render, obj_shirt_list)
+        longest_diagonal = pool.map(compute_longest_diagonal, obj_shirt_list)
+    max_ld = max(longest_diagonal)
+
+    with Pool(processes=opt.num_process) as pool:
+        pool.map(render, obj_shirt_list[:100])
 

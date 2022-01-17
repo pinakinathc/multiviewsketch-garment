@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Evaluate Multiview Garment Modelin
 parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/siga15_overfit/', help='enter data dir')
 parser.add_argument('--input_dir', type=str, default='output/1/', help='enter evaluation image path')
 parser.add_argument('--output_dir', type=str, help='enter output mesh path')
-parser.add_argument('--ckpt', type=str, default='saved_models/new_model-val_loss=0.067.ckpt', help='enter model path')
+parser.add_argument('--ckpt', type=str, default='saved_models/new_model_tuanfeng-val_loss=0.16.ckpt', help='enter model path')
 opt = parser.parse_args()
 
 # Image transforms
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     views = [180, 300, 60]
     list_garments = np.loadtxt(os.path.join(opt.data_dir, 'val.txt'), dtype=str)
-    list_garments = list_garments[:21]
+    # list_garments = list_garments[:21]
 
     for g_idx, garment in enumerate(list_garments):
         list_inp_imgs = []

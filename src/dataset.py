@@ -69,36 +69,21 @@ class GarmentDataset(torch.utils.data.Dataset):
         all_mask = [] # Store Mask values to simulate random views
 
         # Randomly select n views
-        azi_list = local_state.choice(self.azi_list, self.num_views).tolist()
-        # azi_list = local_state.choice(self.azi_list, 1).tolist()
-        # delta_azi = (36 // self.num_views) * 10
-        # for i in range(self.num_views-1):
-        #     azi_list.append((azi_list[-1] + delta_azi)%360)
-        # azi_list.append((azi_list[0]+180)%360)
+        # azi_list = local_state.choice(self.azi_list, self.num_views).tolist()
+        azi_list = local_state.choice(self.azi_list, 1).tolist()
+        delta_azi = (36 // self.num_views) * 10
+        for i in range(self.num_views-1):
+            azi_list.append((azi_list[-1] + delta_azi)%360)
 
         views = local_state.randint(1, self.num_views)
 
         for id_azi, azi in enumerate(azi_list):
-            # Read image sketch for a view
-            img_path = os.path.join(self.data_dir, 'RENDER', garment, '%d_0_00.png'%azi)
-            img = Image.open(img_path).convert('RGBA').split()[-1].convert('RGB')
-            img_tensor = Variable(normalize(to_tensor(scaler(img))).unsqueeze(0))
-            all_img_tensor.append(img_tensor)
-
-            # Compute azi tensor
-            all_azi_tensor.append(torch.LongTensor([azi//10]))
-
-            # Compute positional encoding
-            pos_emb_feat = []
-            for p in [1, 2, 4, 8, 16]:
-                pos_emb_feat.append(np.sin(np.radians(azi*p)))
-                pos_emb_feat.append(np.cos(np.radians(azi*p)))
-            all_pos_emb_feat.append(pos_emb_feat)
 
             """ Random Sampling """
             data_list = []
             key_list = []
-            if id_azi==0 and not self.use_partial:
+            if not self.use_partial:
+                tmp_garment = garment
                 points_data = np.load(os.path.join(
                     self.data_dir, 'all_mesh_points', '%s.npy'%garment), allow_pickle=True)
                 key_list = ['inside', 'outside', 'random']
@@ -135,6 +120,22 @@ class GarmentDataset(torch.utils.data.Dataset):
             all_sdf.append(sdf)
             all_mask.append(mask)
 
+            # Read image sketch for a view
+            img_path = os.path.join(self.data_dir, 'RENDER', tmp_garment, '%d_0_00.png'%azi)
+            img = Image.open(img_path).convert('RGBA').split()[-1].convert('RGB')
+            img_tensor = Variable(normalize(to_tensor(scaler(img))).unsqueeze(0))
+            all_img_tensor.append(img_tensor)
+
+            # Compute azi tensor
+            all_azi_tensor.append(torch.LongTensor([azi//10]))
+
+            # Compute positional encoding
+            pos_emb_feat = []
+            for p in [1, 2, 4, 8, 16]:
+                pos_emb_feat.append(np.sin(np.radians(azi*p)))
+                pos_emb_feat.append(np.cos(np.radians(azi*p)))
+            all_pos_emb_feat.append(pos_emb_feat)
+
         all_img_tensor = torch.cat(all_img_tensor, dim=0)
         all_azi_tensor = torch.cat(all_azi_tensor, dim=0)
         all_pos_emb_feat = Variable(torch.FloatTensor(all_pos_emb_feat))
@@ -155,6 +156,7 @@ class GarmentDataset(torch.utils.data.Dataset):
 if __name__ == '__main__':
     from options import opts
     from utils import save_vertices_ply
+    from torchvision.utils import save_image
 
     dataset = GarmentDataset(
         data_dir=opts.data_dir,
@@ -167,6 +169,9 @@ if __name__ == '__main__':
 
     count = 0
     for all_img, all_pos_emb_feat, all_xyz, all_sdf, all_mask, all_azi in dataset:
+        print ('Shape: all_img {}, all_pos_emb_feat {}, all_xyz {}, all_sdf {} all_mask {} all_azi {}'.format(
+            all_img.shape, all_pos_emb_feat.shape, all_xyz.shape, all_sdf.shape, all_mask.shape, all_azi.shape
+        ))
         for idx in range(opts.num_views):
             print ('shape of points: {}, sdf: {}'.format(
                 all_xyz[idx].shape, all_sdf[idx].shape))
@@ -174,5 +179,6 @@ if __name__ == '__main__':
             save_vertices_ply(
                 os.path.join('output', '%d.ply'%count),
                 all_xyz[idx], all_sdf[idx])
+            save_image(all_img[idx], os.path.join('output', '%d.jpg'%count))
             count += 1
             input ('check')

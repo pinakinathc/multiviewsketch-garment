@@ -66,8 +66,8 @@ def fill_in_camera_positions():
     delta_elev_min = 5
     delta_r = 0.1
 
-    # azi_origins = [180, 300, 60]
-    azi_origins = [180, 0]
+    azi_origins = [180, 300, 60]
+    # azi_origins = [180, 0]
     # azi_origins = [180]
     elev_origin = 10
     r_origin = 1.5
@@ -99,7 +99,7 @@ def render(filepath, output_dir, filename=None):
 
     ####### Init Setup #########
     if filename is None:
-        filename = os.path.split(filepath)[-1]
+        filename = os.path.split(os.path.split(filepath)[0])[-1]
 
     print (output_dir, filename)
     render_path = os.path.join(output_dir, filename+'_NPR')
@@ -193,13 +193,13 @@ def render(filepath, output_dir, filename=None):
     bpy.data.linestyles['LineStyle'].length_min = 3 # 17 # 11.1
     bpy.data.linestyles['LineStyle'].use_chain_count = False
     bpy.data.linestyles['LineStyle'].use_nodes = False
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
-    bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
+    # bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
 
 
     freestyle_settings.linesets['LineSet'].select_border = True
@@ -236,8 +236,10 @@ if __name__ == '__main__':
 
     print ('Options:\n', opt)
 
-    # obj_shirt_list = np.loadtxt(opt.input_dir, dtype=str)
-    obj_shirt_list = glob.glob(opt.input_dir)
+    obj_shirt_list = np.loadtxt(os.path.join(opt.input_dir, 'val.txt'), dtype=str)
+    obj_shirt_list = [
+        glob.glob(os.path.join(opt.input_dir, 'GEO', 'OBJ', item, '*.obj'))[0] for item in obj_shirt_list]
+    # obj_shirt_list = glob.glob(opt.input_dir)
 
     # with Pool(processes=opt.num_process) as pool:
     #     pool.map(render, obj_shirt_list)

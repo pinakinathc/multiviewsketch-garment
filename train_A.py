@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from options import opts
-from src.model_old import GarmentModel
+from src.model_A import GarmentModel
 from src.dataset import GarmentDataset
 
 from pytorch_lightning import Trainer
@@ -34,11 +34,11 @@ if __name__ == '__main__':
 
     train_loader = DataLoader(
         dataset=dataset_train, batch_size=opts.batch_size,
-        shuffle=True, num_workers=8
+        shuffle=True, num_workers=12
     )
 
     val_loader = DataLoader(
-        dataset=dataset_val, batch_size=opts.batch_size, num_workers=8
+        dataset=dataset_val, batch_size=opts.batch_size, num_workers=12
     )
 
     logger = TensorBoardLogger('tb_logs', name=opts.exp_name)

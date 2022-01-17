@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from options import opts
-from src.model_old import GarmentModel
+from src.model_B import GarmentModel
 from src.dataset import GarmentDataset
 
 from pytorch_lightning import Trainer
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     )
 
     ckpt_path = glob.glob(
-        os.path.join('saved_models', '%s*.ckpt'%opts.exp_name))
+        os.path.join('saved_models', '%s.ckpt'%opts.exp_name))
     if len(ckpt_path) == 0:
         ckpt_path = None
     else:

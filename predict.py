@@ -20,9 +20,9 @@ from utils.error_surface import error_surface
 
 parser = argparse.ArgumentParser(description='Evaluate Multiview Garment Modeling')
 parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/siga15_overfit/', help='enter data dir')
-parser.add_argument('--input_dir', type=str, default='output/11/', help='enter evaluation image path')
+parser.add_argument('--input_dir', type=str, default='output/1/', help='enter evaluation image path')
 parser.add_argument('--output_dir', type=str, help='enter output mesh path')
-parser.add_argument('--ckpt', type=str, default='saved_models_bkp/new_model-val_loss=0.036.ckpt', help='enter model path')
+parser.add_argument('--ckpt', type=str, default='saved_models/new_model_siga15_testing-val_loss=0.11.ckpt', help='enter model path')
 opt = parser.parse_args()
 
 # Image transforms
@@ -45,10 +45,11 @@ if __name__ == '__main__':
     # view_ids = [180, 180, 180]
     view_ids = [180, 0]
 
-    # list_garments = np.loadtxt('./../training_data/siggraph15_body_up/val.txt', dtype=str)
-    # list_garments = list_garments[:3]
-    # list_garments = ['313', '324', '24', '26']
-    list_garments = ['24', '26']
+    list_garments = np.loadtxt(os.path.join(opt.data_dir, 'val.txt'), dtype=str)
+    list_garments = list_garments[:21]
+    list_garments = ['313', '324', '24', '26']
+    list_garments = ['324', '313']
+    # list_garments = ['W8EXCGDKFZST', 'W9YTPAQVMLZS']
     
     for garment in list_garments[:1]:
         list_input_imgs = []
@@ -111,7 +112,7 @@ if __name__ == '__main__':
             winding_num = (winding_num**2).sum(axis=0)**0.5
 
             """ Mesh Paths """
-            gt_mesh_path = os.path.join(opt.data_dir, 'GEO', 'OBJ', '%s/%s.obj'%(garment, garment))
+            gt_mesh_path = glob.glob(os.path.join(opt.data_dir, 'GEO', 'OBJ', '%s/*.obj'%(garment)))[0]
             pred_mesh_path =  os.path.join(opt.output_dir, '%s_pred_view_%d_%d.obj'%(garment, vid, view_id))
             error_mesh_path = os.path.join(opt.output_dir, '%s_error_view_%d_%d.obj'%(garment, vid, view_id))
 

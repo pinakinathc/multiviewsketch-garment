@@ -16,7 +16,6 @@ class GarmentModel(pl.LightningModule):
         self.alignUpdater = AlignUpdater()
         self.decoder = Decoder()
         self.alphaClassifier = AlphaClassifier()
-        self.new_activation = new_activation()
 
         self.criterion = torch.nn.L1Loss(reduction='none')
         self.criterion_alpha = torch.nn.CrossEntropyLoss()
@@ -46,10 +45,15 @@ class GarmentModel(pl.LightningModule):
             all_aligned_feat[:, vid, :] = aligned_feat
             
             """ Combine aligned features using Updater """
-            attention = self.new_activation(alpha)
+            # attention = torch.nn.functional.hardshrink(alpha+1, lambd=1.0)
+            attention = torch.nn.functional.softmax(alpha, dim=-1)
             all_alpha[:, vid, :] = attention
-            attention = torch.nn.functional.hardtanh(attention, min_val=0.0, max_val=1.0)
-            latent_feat = attention*aligned_feat + (1 - attention) * latent_feat
+            if vid == 0:
+                latent_feat = aligned_feat
+            else:
+                latent_feat = attention * aligned_feat + (attention.max() - attention) * latent_feat
+            # attention = torch.nn.functional.hardtanh(attention, min_val=0.0, max_val=1.0)
+            # latent_feat = attention*aligned_feat + (1 - attention) * latent_feat
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """
@@ -84,7 +88,7 @@ class GarmentModel(pl.LightningModule):
             loss_alpha += self.criterion_alpha(
                 self.alphaClassifier(all_alpha[:, vid, :]), all_azi[:, vid])
         self.log('alpha_loss', loss_alpha)
-        loss = loss + 10.0*loss_alpha
+        loss = loss + 0.1*loss_alpha
 
         """ L1 regularisation Loss """
         loss_reg = 0
