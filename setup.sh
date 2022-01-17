@@ -20,8 +20,8 @@ conda install -c fvcore -c iopath -c conda-forge fvcore iopath -y
 # conda install pytorch3d -c pytorch3d -y
 pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
 
-sudo apt-get install libxrender1 -y
-apt-get install ffmpeg libsm6 libxext6  -y
-
 rm Miniconda3-latest-Linux-x86_64.sh
 rm bpy-2.91a0-cp37-cp37m-manylinux2014_x86_64.whl
+
+sudo apt-get install libxrender1 -y
+apt-get install ffmpeg libsm6 libxext6  -y
