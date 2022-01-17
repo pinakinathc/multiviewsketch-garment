@@ -4,10 +4,8 @@ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p
 
 source ~/.bashrc
-source ~/miniconda/etc/profile.d/conda.sh
 conda create --name garment python=3.7 numpy scikit-image -c pytorch -y
 
-source ~/miniconda/etc/profile.d/conda.sh
 conda activate garment
 
 python --version
