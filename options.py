@@ -4,6 +4,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Multiview Garment Modeling')
 
+parser.add_argument('--model_name', type=str, help='enter model version to use.')
 parser.add_argument('--exp_name', type=str,
     default='experiment', help='name of experiment')
 
@@ -23,7 +24,7 @@ parser.add_argument('--num_views', type=int, default=3,
 # Train Options
 # ---
 
-parser.add_argument('--batch_size', type=int, default=4, help='batch size for training')
+parser.add_argument('--batch_size', type=int, default=32, help='batch size for training')
 parser.add_argument('--num_workers', type=int, default=12, help='dataloader # of threads used')
 parser.add_argument('--device', type=int, nargs='+', default=[0], help='multi-gpu')
 parser.add_argument('--output_dir', type=str, default='output/experiment', help='dir to save/load')

@@ -4,7 +4,32 @@ import torch
 from torch.utils.data import DataLoader
 
 from options import opts
-from src.model_A import GarmentModel
+
+if opts.model_name == 'model_A':
+    from src.model_A import GarmentModel
+elif opts.model_name == 'model_AA':
+    from src.model_AA import GarmentModel
+elif opts.model_name == 'model_B':
+    from src.model_B import GarmentModel
+elif opts.model_name == 'model_BB':
+    from src.model_BB import GarmentModel
+elif opts.model_name == 'model_C':
+    from src.model_C import GarmentModel
+elif opts.model_name == 'model_D':
+    from src.model_D import GarmentModel
+elif opts.model_name == 'model_E':
+    from src.model_E import GarmentModel
+elif opts.model_name == 'model_F':
+    from src.model_F import GarmentModel
+elif opts.model_name == 'model_G':
+    from src.model_G import GarmentModel
+elif opts.model_name == 'model_H':
+    from src.model_H import GarmentModel
+else:
+    raise ValueError('opts.model_name option wrong: %s'%opts.model_name)
+
+print ('Using model: %s'%opts.model_name)
+
 from src.dataset import GarmentDataset
 
 from pytorch_lightning import Trainer
@@ -34,11 +59,11 @@ if __name__ == '__main__':
 
     train_loader = DataLoader(
         dataset=dataset_train, batch_size=opts.batch_size,
-        shuffle=True, num_workers=12
+        shuffle=True, num_workers=opts.num_workers
     )
 
     val_loader = DataLoader(
-        dataset=dataset_val, batch_size=opts.batch_size, num_workers=12
+        dataset=dataset_val, batch_size=opts.batch_size, num_workers=opts.num_workers
     )
 
     logger = TensorBoardLogger('tb_logs', name=opts.exp_name)

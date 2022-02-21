@@ -8,7 +8,6 @@ import torch
 from torch.autograd import Variable
 import torchvision.transforms as transforms
 from PIL import Image
-from igl import signed_distance
 
 # Image transforms
 scaler = transforms.Scale((224, 224))
@@ -43,11 +42,15 @@ class GarmentDataset(torch.utils.data.Dataset):
         else:
             print ('Testing set')
             self.all_garments = list(val_garments)
-        # self.all_garments = list(val_garments)[:21]
-        # self.all_garments = ['313', '324', '24', '26']
         print ('Number of garments used: %d'%len(self.all_garments))
 
         self.azi_list = list(range(0, 360, 10))
+        
+        self.points_data = {}
+        if not self.use_partial:
+            for garment in tqdm.tqdm(self.all_garments):
+                self.points_data[garment] = np.load(os.path.join(
+                    self.data_dir, 'all_mesh_points', '%s.npy'%garment), allow_pickle=True)
 
     def __len__(self):
         if self.evaluate:
@@ -84,14 +87,16 @@ class GarmentDataset(torch.utils.data.Dataset):
             key_list = []
             if not self.use_partial:
                 tmp_garment = garment
-                points_data = np.load(os.path.join(
-                    self.data_dir, 'all_mesh_points', '%s.npy'%garment), allow_pickle=True)
+                # points_data = np.load(os.path.join(
+                #     self.data_dir, 'all_mesh_points', '%s.npy'%garment), allow_pickle=True)
+                points_data = self.points_data[garment]
                 key_list = ['inside', 'outside', 'random']
             else:
-                if local_state.uniform() > 0.9:
+                if local_state.uniform() > 0.7:
                     closest_shirts = np.loadtxt(os.path.join(
                         self.data_dir, 'closest_mesh', '%s.txt'%garment
                     ), dtype=str).tolist()
+                    closest_shirts = list(set(closest_shirts) & set(self.all_garments))
                     closest_shirts = closest_shirts[:10]
                     prob_weights = 3**np.arange(len(closest_shirts), 0, -1)
                     prob_weights = prob_weights / prob_weights.sum()
@@ -105,7 +110,7 @@ class GarmentDataset(torch.utils.data.Dataset):
                 ), allow_pickle=True)
             for keys in key_list:
                 data = points_data.item().get(keys)
-                data_list.append(data[local_state.choice(data.shape[0], 3*self.num_points//4)])
+                data_list.append(data[local_state.choice(data.shape[0], self.num_points//3)])
             data = np.concatenate(data_list, 0)
             local_state.shuffle(data)
             xyz = data[:, :3]
@@ -157,28 +162,35 @@ if __name__ == '__main__':
     from options import opts
     from utils import save_vertices_ply
     from torchvision.utils import save_image
+    from torch.utils.data import DataLoader
 
     dataset = GarmentDataset(
         data_dir=opts.data_dir,
         val_path=os.path.join(opts.data_dir, 'val.txt'),
         num_views=opts.num_views,
         num_points=opts.num_points,
-        use_partial=True,
+        use_partial=False,
         evaluate=True
     )
 
+    data_loader = DataLoader(
+        dataset=dataset, batch_size=opts.batch_size,
+        shuffle=True, num_workers=opts.num_workers
+    )
+
     count = 0
-    for all_img, all_pos_emb_feat, all_xyz, all_sdf, all_mask, all_azi in dataset:
+    for all_img, all_pos_emb_feat, all_xyz, all_sdf, all_mask, all_azi in tqdm.tqdm(data_loader):
         print ('Shape: all_img {}, all_pos_emb_feat {}, all_xyz {}, all_sdf {} all_mask {} all_azi {}'.format(
             all_img.shape, all_pos_emb_feat.shape, all_xyz.shape, all_sdf.shape, all_mask.shape, all_azi.shape
         ))
+        # continue
         for idx in range(opts.num_views):
             print ('shape of points: {}, sdf: {}'.format(
                 all_xyz[idx].shape, all_sdf[idx].shape))
             print ('max: {}, min: {}'.format(all_sdf[idx].max(), all_sdf[idx].min()))
             save_vertices_ply(
                 os.path.join('output', '%d.ply'%count),
-                all_xyz[idx], all_sdf[idx])
+                all_xyz[0][idx], all_sdf[0][idx])
             save_image(all_img[idx], os.path.join('output', '%d.jpg'%count))
             count += 1
             input ('check')

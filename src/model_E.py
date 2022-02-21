@@ -15,10 +15,7 @@ class GarmentModel(pl.LightningModule):
         self.alignUpdater = AlignUpdater()
         self.decoder = Decoder()
         self.alphaClassifier = AlphaClassifier()
-        self.latent_feat = torch.nn.Parameter(torch.fmod(
-            torch.nn.init.normal_(torch.empty(512), mean=0.0, std=0.02), 2)).cuda()
 
-        self.softmax = torch.nn.Softmax()
         self.layer_norm = torch.nn.LayerNorm(512)
         self.criterion = torch.nn.L1Loss(reduction='none')
         self.criterion_alpha = torch.nn.CrossEntropyLoss()
@@ -37,7 +34,6 @@ class GarmentModel(pl.LightningModule):
         all_alpha = torch.zeros((B, num_views, 512)).cuda()
         all_latent_feat = torch.zeros((B, num_views, 512)).cuda()
 
-        latent_feat = self.latent_feat.repeat(B, 1) # B x 512
         for vid in range(num_views):
             """ Get feature representation from image """
             img_feat = self.encoder(img[:, vid, :, :, :])
@@ -48,9 +44,11 @@ class GarmentModel(pl.LightningModule):
             all_aligned_feat[:, vid, :] = aligned_feat
             
             """ Combine aligned features using Updater """
-            attention = self.softmax(alpha / (torch.tensor(512**0.5).cuda()))
-            all_alpha[:, vid, :] = attention
-            latent_feat = self.layer_norm(attention*aligned_feat + (attention.max() - attention)*latent_feat)
+            if vid == 0:
+                latent_feat = aligned_feat
+            else:
+                latent_feat = torch.nn.functional.avg_pool1d(
+                    all_aligned_feat[:, :vid, :].permute(0, 2, 1), vid)[:, :, 0]
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """
@@ -78,22 +76,6 @@ class GarmentModel(pl.LightningModule):
             loss += (vid+1)*(self.criterion(all_pred_sdf[vid].reshape(-1, 1),
                 sdf[:, vid, :, :].reshape(-1, 1)) * mask[:, vid, :, :].reshape(-1, 1)).mean()
         self.log('sdf_loss', loss)
-
-        """ Attention Loss """
-        loss_alpha = 0
-        for vid in range(num_views):
-            loss_alpha += self.criterion_alpha(
-                self.alphaClassifier(all_alpha[:, vid, :]), all_azi[:, vid])
-        self.log('alpha_loss', loss_alpha)
-        loss = loss + 0.1*loss_alpha
-
-        """ L1 regularisation Loss """
-        loss_reg = 0
-        for param in self.alignUpdater.alpha_emb.parameters():
-            loss_reg += self.l1_reg_crit(param, target=torch.zeros_like(param))
-        self.log('L1_reg', loss_reg)
-        loss = loss + 0.0005*loss_reg
-
         self.log('train_loss', loss)
         return loss
 
@@ -108,20 +90,7 @@ class GarmentModel(pl.LightningModule):
                 sdf[:, vid, :, :].reshape(-1, 1)) * mask[:, vid, :, :].reshape(-1, 1)).mean()
         
         self.log('val_sdf_loss', loss)
-
-        loss_alpha = 0
-        all_correct = 0
-        total = 0
-        for vid in range(num_views):
-            pred_alpha = self.alphaClassifier(all_alpha[:, vid, :])
-            azi = all_azi[:, vid]
-            loss_alpha += self.criterion_alpha(pred_alpha, azi)
-            correct = (pred_alpha.topk(1, dim=1)[1].reshape(-1) == azi).sum()
-            all_correct += correct.item()
-            total += azi.shape[0]
-        self.log('val_alpha_loss', loss_alpha)
-        loss = loss + 0.01*loss_alpha
-
+        all_correct, total = 0, 0
         self.log('val_loss', loss)
         return all_correct, total
 

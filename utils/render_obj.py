@@ -55,7 +55,7 @@ batch_size = 1
 # Create Renderer
 meshes = mesh.extend(batch_size)
 azim = torch.linspace(-180, 180, batch_size)
-azim = torch.tensor([180])
+azim = torch.tensor([270])
 R, T = look_at_view_transform(dist=2.7, elev=0, azim=azim)
 cameras = FoVPerspectiveCameras(device=device, R=R, T=T)
 
@@ -65,7 +65,7 @@ raster_settings = RasterizationSettings(
     faces_per_pixel=1, 
 )
 
-lights = PointLights(device=device, location=[[0.0, 0.0, -3.0]])
+lights = PointLights(device=device, location=[[0.0, 0.0, 3.0]])
 # lights = AmbientLights(device=device)
 # lights.location = torch.tensor([[0.0, 0.0, -3.0]], device=device)
 

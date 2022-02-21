@@ -19,15 +19,15 @@ docker_image     = registry.eps.surrey.ac.uk/pinakinathc:latest
 
 # -------------------------------------
 # Event, out and error logs
-log    = c$(cluster).p$(process).log
-output = c$(cluster).p$(process).out
-error  = c$(cluster).p$(process).error
+log    = condor/c$(cluster).p$(process).log
+output = condor/c$(cluster).p$(process).out
+error  = condor/c$(cluster).p$(process).error
 
 # -----------------------------------
 # File Transfer, Input, Output
 should_transfer_files = YES
 
-environment = "mount=/vol/research/sketchcaption,/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/"
+environment = "mount=/vol/research/sketchcaption,/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/,/vol/vssp/datasets/still/adobe-wang/"
 
 # ------------------------------------
 requirements  = ( HasStornext == true ) && ( CUDACapability >= 6.2 )
@@ -36,12 +36,12 @@ requirements  = ( HasStornext == true ) && ( CUDACapability >= 6.2 )
 # Resources
 request_GPUs     = 1
 +GPUMem          = 10000
-request_CPUs     = 3
-request_memory = 12096
+request_CPUs     = 12
+request_memory = 32G
 
 #This job will complete in less than 1 hours
 #NB interactive jobs are limited to 4 hours
-+JobRunTime = 24
++JobRunTime = 36
 
 #This job can checkpoint
 +CanCheckpoint = true
@@ -49,26 +49,42 @@ request_memory = 12096
 # -----------------------------------
 # Queue commands
 
+## Train Wang-18
+
+arguments = python train.py --model_name=model_A --exp_name=wang18-model-A --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_AA --exp_name=wang18-model-AA --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_B --exp_name=wang18-model-B --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_BB --exp_name=wang18-model-BB --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_C --exp_name=wang18-model-C --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_D --exp_name=wang18-model-D --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_E --exp_name=wang18-model-E --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_F --exp_name=wang18-model-F --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_G --exp_name=wang18-model-G --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+arguments = python train.py --model_name=model_H --exp_name=wang18-model-H --data_dir=/vol/vssp/datasets/still/adobe-wang/
+queue 1
+
+## RENDER dataset
+
 # arguments = python -m utils.render_data --input_dir=../adobe-dataset/shirt_dataset_rest/*/shirt_mesh_r_tmp.obj --output_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/training_data/wang18/
 # queue 1
 
 # arguments = python -m utils.render_data --input_dir=../adobe-dataset/duygu_dataset/sigasia15/*/*.obj --output_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/training_data/siga15
 # queue 1
-
-arguments = python train_A.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=new_model_A_siga15_full --partial
-queue 1
-
-arguments = python train_B.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=new_model_B_siga15_full --partial
-queue 1
-
-arguments = python train_old.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/ --exp_name=old_model_siga15_full
-queue 1
-
-arguments = python train_A.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=new_model_A_wang_full --partial
-queue 1
-
-arguments = python train_B.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=new_model_B_wang_full --partial
-queue 1
-
-arguments = python train_old.py --data_dir=/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/tuanfeng_data/ --exp_name=old_model_wang_full
-queue 1

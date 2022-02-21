@@ -25,9 +25,14 @@ def get_normals(obj_path):
 	mesh.rezero()
 	mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
 
-	sdf = signed_distance(grid, mesh.vertices, mesh.faces)[0][:, np.newaxis]
-	sdf = sdf.reshape((reso, reso, reso))
-	verts, faces, normals, values = measure.marching_cubes(sdf, 0.0)
+	## Slower method
+	# sdf = signed_distance(grid, mesh.vertices, mesh.faces)[0][:, np.newaxis]
+	# sdf = sdf.reshape((reso, reso, reso))
+	# verts, faces, normals, values = measure.marching_cubes(sdf, 0.0)
+
+	## Faster method
+	verts = mesh.vertices
+	normals = trimesh.geometry.mean_vertex_normals(len(mesh.vertices), mesh.faces, mesh.face_normals)
 
 	# view_ids = [180, 300, 60]
 	view_ids = [180, 0]

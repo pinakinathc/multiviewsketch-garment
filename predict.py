@@ -12,18 +12,42 @@ from torch.autograd import Variable
 import torchvision.transforms as transforms
 from skimage import measure
 from igl import signed_distance
-from PIL import Image
-from src.model import GarmentModel
-# from src.model_old import GarmentModel
+from PIL import Image, ImageOps
 from utils.error_surface import error_surface
 
 
 parser = argparse.ArgumentParser(description='Evaluate Multiview Garment Modeling')
-parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/siga15_overfit/', help='enter data dir')
-parser.add_argument('--input_dir', type=str, default='output/1/', help='enter evaluation image path')
+parser.add_argument('--model_name', type=str, default='model_A')
+parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/', help='enter data dir')
+parser.add_argument('--input_dir', type=str, default='output/11/', help='enter evaluation image path')
 parser.add_argument('--output_dir', type=str, help='enter output mesh path')
-parser.add_argument('--ckpt', type=str, default='saved_models/new_model_siga15_testing-val_loss=0.11.ckpt', help='enter model path')
+parser.add_argument('--ckpt', type=str, default='saved_models_full/new_model_A_siga15_full.ckpt', help='enter model path')
 opt = parser.parse_args()
+
+if opt.model_name == 'model_A':
+    from src.model_A import GarmentModel
+elif opt.model_name == 'model_AA':
+    from src.model_AA import GarmentModel
+elif opt.model_name == 'model_B':
+    from src.model_B import GarmentModel
+elif opt.model_name == 'model_C':
+    from src.model_C import GarmentModel
+elif opt.model_name == 'model_D':
+    from src.model_D import GarmentModel
+elif opt.model_name == 'model_E':
+    from src.model_E import GarmentModel
+elif opt.model_name == 'model_F':
+    from src.model_F import GarmentModel
+elif opt.model_name == 'model_G':
+    from src.model_G import GarmentModel
+elif opt.model_name == 'model_H':
+    from src.model_H import GarmentModel
+elif opt.model_name == 'model_I':
+    from src.model_I import GarmentModel
+else:
+    raise ValueError('opts.model_name option wrong: %s'%opt.model_name)
+
+os.makedirs(os.path.join(opt.output_dir, opt.model_name), exist_ok=False)
 
 # Image transforms
 scaler = transforms.Scale((224, 224))
@@ -41,29 +65,34 @@ if __name__ == '__main__':
     num_samples = 2048
     grid = np.mgrid[-.9:.9:reso*1j, -.9:.9:reso*1j, -.9:.9:reso*1j].reshape(3, -1).T
 
-    # view_ids = [180, 300, 60]
+    view_ids = [180, 300, 60]
     # view_ids = [180, 180, 180]
-    view_ids = [180, 0]
+    # view_ids = [180, 0]
 
     list_garments = np.loadtxt(os.path.join(opt.data_dir, 'val.txt'), dtype=str)
-    list_garments = list_garments[:21]
-    list_garments = ['313', '324', '24', '26']
-    list_garments = ['324', '313']
-    # list_garments = ['W8EXCGDKFZST', 'W9YTPAQVMLZS']
-    
-    for garment in list_garments[:1]:
+    list_garments = list_garments[:5]
+
+    for garment in list_garments:
         list_input_imgs = []
         for idx, view_id in enumerate(view_ids):
+            
+            # # For disentanglement experiment
+            # closest_garment = np.loadtxt(os.path.join(opt.data_dir, 'closest_mesh', '%s.txt'%garment), dtype=str)
+            # tmp_garment = closest_garment[0::10][idx]
+            # tmp_garment = list_garments[idx]
             # list_input_imgs.append(os.path.join(
-            #     opt.input_dir, '%s_NPR%d.png'%(garment, view_id)))
+            #     opt.data_dir, 'RENDER', tmp_garment, '%d_0_00.png'%view_id))
+
+            # For consistent setup
             list_input_imgs.append(os.path.join(
-                opt.input_dir, '%s_NPR%d.png'%(list_garments[idx], view_id)))
+                opt.data_dir, 'RENDER', garment, '%d_0_00.png'%view_id))
         img_tensor = []
         pos_emb_feat = []
         
         for idx, view_id in enumerate(view_ids):
             img_path = list_input_imgs[idx]
             image = Image.open(img_path).convert('RGBA').split()[-1].convert('RGB')
+            ImageOps.invert(image).save(os.path.join(opt.output_dir, '%s_pred_view_%d_%d.jpg'%(garment, idx, view_id)))
             t_img = Variable(normalize(to_tensor(scaler(image))).unsqueeze(0))
 
             pos_emb = []
@@ -132,5 +161,5 @@ if __name__ == '__main__':
                     continue
     
             """ Error Mesh """
-            error_surface(gt_mesh_path, pred_mesh_path, error_mesh_path)
+            # error_surface(gt_mesh_path, pred_mesh_path, error_mesh_path)
         

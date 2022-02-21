@@ -8,17 +8,25 @@ import torch
 import trimesh
 from chamferdist import ChamferDistance
 from options import opts
+from multiprocessing import Pool
 
-def mesh_resize(mesh):
+def compute_scale (mesh_path):
+    mesh = trimesh.load(mesh_path)
+    mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
+    scene = trimesh.Scene(mesh)
+    return scene.scale
+
+
+def mesh_resize(mesh, scale):
 	mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
 	scene = trimesh.Scene(mesh)
-	scene = scene.scaled(1.5/scene.scale)
+	scene = scene.scaled(1.5/scale)
 	mesh = scene.geometry[list(scene.geometry.keys())[0]]
 	return mesh
 
 distance_fn = ChamferDistance()
 
-def process_similar(list_shirts):
+def process_similar(list_shirts, max_scale):
 	list_shirts = np.array(list_shirts)
 	obj_closest = {}
 	all_objs = []
@@ -27,7 +35,7 @@ def process_similar(list_shirts):
 		shirtpath = glob.glob(os.path.join(
 			opts.data_dir, "GEO", "OBJ", shirtname, "*.obj"))[0]
 		obj = trimesh.load(shirtpath)
-		obj = mesh_resize(obj)
+		obj = mesh_resize(obj, max_scale)
 		obj_tensor = torch.tensor(obj.vertices, dtype=torch.float32).unsqueeze(0)
 		all_objs.append(obj_tensor.cuda())
 
@@ -51,5 +59,9 @@ if __name__ == '__main__':
 	val_shirts = np.loadtxt(os.path.join(opts.data_dir, 'val.txt'), dtype=str)[:21]
 	train_shirts = sorted(list(set(list_shirts) - set(val_shirts)))
 
-	process_similar(train_shirts)
-	process_similar(val_shirts)
+	with Pool(processes=None) as pool:
+		all_scale = pool.map(compute_scale, glob.glob(os.path.join(opts.data_dir, "GEO", "OBJ", "*", "*.obj")))
+		max_scale = max(all_scale)
+
+	process_similar(train_shirts, max_scale)
+	process_similar(val_shirts, max_scale)

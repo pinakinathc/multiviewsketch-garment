@@ -5,6 +5,7 @@
 import os
 import glob
 import argparse
+import time
 import numpy as np
 import warnings
 from multiprocessing import Process, Pool
@@ -53,11 +54,14 @@ def find_longest_diagonal(imported):
 
 
 def compute_longest_diagonal(mesh_path):
-    bpy.ops.import_scene.obj(filepath=mesh_path, axis_forward='-X')
-    obj_object = bpy.context.selected_objects[0]
-    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-    ld = find_longest_diagonal(obj_object)
-    return ld
+    try:
+        bpy.ops.import_scene.obj(filepath=mesh_path, axis_forward='-X')
+        obj_object = bpy.context.selected_objects[0]
+        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+        ld = find_longest_diagonal(obj_object)
+        return ld
+    except:
+        return 1.0
 
 
 def fill_in_camera_positions():
@@ -107,25 +111,28 @@ def fill_in_camera_positions():
     return azis, elevs, x_pos, y_pos, z_pos
 
 
-def render(filepath):
+def render(filepath, max_ld):
     global opt
 
     ####### Init Setup #########
     folder_name = os.path.split(filepath)[0]
+    if os.path.split(folder_name)[-1] == 'component_obj':
+        folder_name = os.path.split(folder_name)[0]
     folder_name = os.path.split(folder_name)[-1]
+
 
     obj_path = os.path.join(opt.output_dir, 'GEO', 'OBJ', folder_name)
     # smooth_obj_path = os.path.join(opt.output_dir, 'GEO', 'SMOOTH_OBJ', folder_name)
     render_path = os.path.join(opt.output_dir, 'RENDER', folder_name)
-    svg_path = os.path.join(opt.output_dir, 'SVG', folder_name)
+    # svg_path = os.path.join(opt.output_dir, 'SVG', folder_name)
 
     os.makedirs(obj_path, exist_ok=True)
     os.makedirs(render_path, exist_ok=True)
-    os.makedirs(svg_path, exist_ok=True)
+    # os.makedirs(svg_path, exist_ok=True)
 
-    # copy obj file
-    cmd = "cp '%s' '%s'" % (filepath, obj_path)
-    os.system(cmd)
+    # # copy obj file
+    # cmd = "cp '%s' '%s'" % (filepath, obj_path)
+    # os.system(cmd)
 
     # clean the default blender scene
     bpy.ops.object.select_all(action='SELECT')
@@ -140,10 +147,6 @@ def render(filepath):
     obj_object.scale = (scaleFactor, scaleFactor, scaleFactor)
     center = Vector((0.0, 0.0, 0.0))
     obj_object.location = center
-
-    # # Export resized OBJ
-    # bpy.ops.export_scene.obj(filepath=os.path.join(obj_path, '%s.obj'%folder_name),
-    #     filter_glob='*.obj', axis_forward='-X')
 
     ###### Add a camera ########
     bpy.ops.object.camera_add()
@@ -210,15 +213,15 @@ def render(filepath):
     bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
     bpy.data.linestyles['LineStyle'].use_length_max = True
     bpy.data.linestyles['LineStyle'].use_length_min = True
-    bpy.data.linestyles['LineStyle'].length_min = 1
+    # bpy.data.linestyles['LineStyle'].length_min = 1
     bpy.data.linestyles['LineStyle'].use_chain_count = False
     bpy.data.linestyles['LineStyle'].use_nodes = False
     # bpy.ops.scene.freestyle_geometry_modifier_add(type='BACKBONE_STRETCHER')
     # bpy.data.linestyles['LineStyle'].geometry_modifiers["Backbone Stretcher"].backbone_length = 3.0
     # bpy.data.linestyles['LineStyle'].geometry_modifiers["Sampling"].sampling = 1.0
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='BEZIER_CURVE')
     # bpy.data.linestyles['LineStyle'].geometry_modifiers["Bezier Curve"].error = 10.0
-    bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
+    # bpy.ops.scene.freestyle_geometry_modifier_add(type='SIMPLIFICATION')
     # bpy.data.linestyles['LineStyle'].geometry_modifiers["Simplification"].tolerance = 0.5
 
     freestyle_settings.linesets['LineSet'].select_border = True
@@ -246,8 +249,13 @@ def render(filepath):
 
         # Render PNG
         bpy.context.scene.render.filepath = os.path.join(render_path, str(int(azi))+'_0_00')
-        bpy.context.scene.svg_export.use_svg_export = False
+        # bpy.context.scene.svg_export.use_svg_export = False
         bpy.ops.render.render(write_still = True)
+        # time.sleep(1)
+
+    # # Export resized OBJ
+    bpy.ops.export_scene.obj(filepath=os.path.join(obj_path, '%s.obj'%folder_name),
+        filter_glob='*.obj', axis_forward='-X')
         
 
 if __name__ == '__main__':
@@ -262,6 +270,11 @@ if __name__ == '__main__':
 
     obj_shirt_list = sorted(glob.glob(opt.input_dir))
 
+    # global max_ld # Make LD global since it would be constant for entire dataset
+    with Pool(processes=opt.num_process) as pool:
+        longest_diagonal = pool.map(compute_longest_diagonal, obj_shirt_list)
+    max_ld = max(longest_diagonal)
+
     # Skip files already rendered
     new_obj_shirt_list = []
     for filepath in obj_shirt_list:
@@ -274,11 +287,8 @@ if __name__ == '__main__':
             new_obj_shirt_list.append(filepath)
     obj_shirt_list = new_obj_shirt_list
 
-    global max_ld # Make LD global since it would be constant for entire dataset
-    with Pool(processes=opt.num_process) as pool:
-        longest_diagonal = pool.map(compute_longest_diagonal, obj_shirt_list)
-    max_ld = max(longest_diagonal)
-
-    with Pool(processes=opt.num_process) as pool:
-        pool.map(render, obj_shirt_list[:100])
+    # with Pool(processes=opt.num_process) as pool:
+    #     pool.map(render, obj_shirt_list[:100])
+    for obj_shirt in obj_shirt_list:
+        render(obj_shirt, max_ld)
 

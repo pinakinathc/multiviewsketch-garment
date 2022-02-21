@@ -17,9 +17,12 @@ class GarmentModel(pl.LightningModule):
         self.alphaClassifier = AlphaClassifier()
         self.latent_feat = torch.nn.Parameter(torch.fmod(
             torch.nn.init.normal_(torch.empty(512), mean=0.0, std=0.02), 2)).cuda()
+        self.latent_key = torch.nn.Linear(512, 512)
+        self.latent_value = torch.nn.Linear(512, 512)
+        self.FF = torch.nn.Linear(512, 512)
+
 
         self.softmax = torch.nn.Softmax()
-        self.layer_norm = torch.nn.LayerNorm(512)
         self.criterion = torch.nn.L1Loss(reduction='none')
         self.criterion_alpha = torch.nn.CrossEntropyLoss()
         self.l1_reg_crit = torch.nn.L1Loss(size_average=False)
@@ -48,9 +51,21 @@ class GarmentModel(pl.LightningModule):
             all_aligned_feat[:, vid, :] = aligned_feat
             
             """ Combine aligned features using Updater """
-            attention = self.softmax(alpha / (torch.tensor(512**0.5).cuda()))
+            ## Cross Attention
+            query = aligned_feat
+            key = self.latent_key(latent_feat)
+            value = self.latent_value(latent_feat)
+            latent_feat = self.FF(torch.matmul(
+                self.softmax(torch.matmul(query, key.T) / torch.tensor(512**0.5).cuda()), value))
+
+            ## Re-write in certain location
+            attention = torch.nn.functional.hardshrink(alpha+1, lambd=1.0)
             all_alpha[:, vid, :] = attention
-            latent_feat = self.layer_norm(attention*aligned_feat + (attention.max() - attention)*latent_feat)
+            attention = torch.nn.functional.hardtanh(attention, min_val=0.0, max_val=1.0)
+            if vid == 0:
+                latent_feat = aligned_feat
+            else:
+                latent_feat = attention*aligned_feat + (1 - attention) * latent_feat
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """

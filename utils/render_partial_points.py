@@ -9,10 +9,6 @@ from igl import winding_number
 from multiprocessing import Pool
 from utils import save_vertices_ply
 
-parser = argparse.ArgumentParser(description='Precomputes saved points from Meshs')
-parser.add_argument('--data_dir', type=str, help='Path to all Meshes')
-opts = parser.parse_args()
-
 
 def resize_ply(mesh, scale, centroid):
     mesh = trimesh.Trimesh(mesh.vertices - centroid)
@@ -21,9 +17,8 @@ def resize_ply(mesh, scale, centroid):
     mesh = scene.geometry[list(scene.geometry.keys())[0]]
     return mesh.vertices
 
-
 def render_partial_mesh(azi):
-    save_path = os.path.join(opts.data_dir, 'partial_mesh_points', garment, '%d.npy'%azi)
+    save_path = os.path.join(opt.output_dir, 'partial_mesh_points', garment, '%d.npy'%azi)
     if os.path.exists(save_path):
         return
 
@@ -73,31 +68,39 @@ def render_partial_mesh(azi):
     np.save(save_path, to_save)
 
 
-def main(garment):
+def main(mesh_path, scale):
+
+    global garment
+    garment = os.path.split(mesh_path)[0]
+    if os.path.split(garment)[-1] == 'component_obj':
+        garment = os.path.split(garment)[0]
+    garment = os.path.split(garment)[-1]
+
     if len(glob.glob(os.path.join(
-        opts.data_dir, 'partial_mesh_points', garment, '*.npy')))==36:
+        opt.output_dir, 'partial_mesh_points', garment, '*.npy')))==36:
         print ('skipping %s'%garment)
         return
 
     os.makedirs(os.path.join(
-        opts.data_dir, 'partial_mesh_points', garment), exist_ok=True)
+        opt.output_dir, 'partial_mesh_points', garment), exist_ok=True)
     
     # Loads original mesh
-    mesh_path = glob.glob(os.path.join(
-        opts.data_dir, 'GEO', 'OBJ', garment, '*.obj'))[0]
     global mesh
     mesh = trimesh.load(mesh_path, skip_materials=False)
     
     # Resize mesh
-    mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
-    scene = trimesh.Scene(mesh)
-    scene = scene.scaled(1.5/scene.scale)
-    mesh = scene.geometry[list(scene.geometry.keys())[0]]
-    global normals
-    normals = trimesh.geometry.mean_vertex_normals(
-        mesh.vertices.shape[0], mesh.faces, mesh.face_normals)
-    global mesh_verts
-    mesh_verts = mesh.vertices
+    try:
+        mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
+        scene = trimesh.Scene(mesh)
+        scene = scene.scaled(1.5/scale)
+        mesh = scene.geometry[list(scene.geometry.keys())[0]]
+        global normals
+        normals = trimesh.geometry.mean_vertex_normals(
+            mesh.vertices.shape[0], mesh.faces, mesh.face_normals)
+        global mesh_verts
+        mesh_verts = mesh.vertices
+    except:
+        return
 
     # count = 0
     # for azi in tqdm.tqdm(range(0, 360, 10)):
@@ -105,20 +108,36 @@ def main(garment):
         pool.map(render_partial_mesh, list(range(0, 360, 10)))
 
 
+def compute_scale (mesh_path):
+    try:
+        mesh = trimesh.load(mesh_path)
+        mesh = trimesh.Trimesh(mesh.vertices - mesh.centroid, mesh.faces)
+        scene = trimesh.Scene(mesh)
+        return scene.scale
+    except:
+        return 0
+
+
 if __name__ == '__main__':
-    os.makedirs(os.path.join(opts.data_dir, 'partial_mesh_points'), exist_ok=True)
+    parser = argparse.ArgumentParser(description='Create realistic 2D render sketch from 3D')
+    parser.add_argument('--input_dir', type=str, default='garment_dataset/shirt_dataset_rest/*/shirt_mesh_r.obj', help='Enter input dir to raw dataset')
+    parser.add_argument('--output_dir', type=str, default='training_data/', help='Enter output dir')
+    parser.add_argument('--device', type=str, default='CUDA', help='Use CPU or GPU')
+    parser.add_argument('--num_process', type=int, default=None, help='Number of Parallel Processes')
+    opt = parser.parse_args()
+
+    print ('Options:\n', opt)
+
     local_state = np.random.RandomState()
-    all_garments = os.listdir(os.path.join(
-        opts.data_dir, 'GEO', 'OBJ'))
-    # all_garments = np.loadtxt(os.path.join(
-    #     opts.data_dir, 'val.txt'
-    # ), dtype=str)[:21]
+    obj_shirt_list = sorted(glob.glob(opt.input_dir))
 
-    # # Get all garments path
+    # global max_ld # Make LD global since it would be constant for entire dataset
+    with Pool(processes=opt.num_process) as pool:
+        all_scale = pool.map(compute_scale, obj_shirt_list)
+    max_scale = max(all_scale)
 
-    print (all_garments)
-    for garment in tqdm.tqdm(all_garments):
-        main(garment)
+    for mesh_path in tqdm.tqdm(obj_shirt_list):
+        main(mesh_path, max_scale)
+
     
-    # with Pool(processes=8) as pool:
-    #     pool.map(main, all_garments)
+

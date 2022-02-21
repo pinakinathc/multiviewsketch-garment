@@ -9,14 +9,14 @@ import torch
 from torch.autograd import Variable
 import torchvision.transforms as transforms
 from PIL import Image
-from src.model import GarmentModel
+from src.model_A import GarmentModel
 from sklearn.manifold import TSNE
 
 parser = argparse.ArgumentParser(description='Evaluate Multiview Garment Modeling')
-parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/siga15_overfit/', help='enter data dir')
-parser.add_argument('--input_dir', type=str, default='output/1/', help='enter evaluation image path')
+parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/', help='enter data dir')
+parser.add_argument('--input_dir', type=str, default='output/siga15/1/', help='enter evaluation image path')
 parser.add_argument('--output_dir', type=str, help='enter output mesh path')
-parser.add_argument('--ckpt', type=str, default='saved_models/new_model_tuanfeng-val_loss=0.16.ckpt', help='enter model path')
+parser.add_argument('--ckpt', type=str, default='saved_models_jade/new_model_A_siga15_full.ckpt', help='enter model path')
 opt = parser.parse_args()
 
 # Image transforms
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     grid = np.mgrid[-.9:.9:reso*1j, -.9:.9:reso*1j, -.9:.9:reso*1j].reshape(3, -1).T
 
     views = [180, 300, 60]
+    views = np.arange(0, 360, 36)
     list_garments = np.loadtxt(os.path.join(opt.data_dir, 'val.txt'), dtype=str)
     # list_garments = list_garments[:21]
 
@@ -45,7 +46,7 @@ if __name__ == '__main__':
         list_inp_imgs = []
         for idx, view_id in enumerate(views):
             list_inp_imgs.append(
-                os.path.join(opt.input_dir, '%s_NPR%d.png'%(garment, view_id))
+                os.path.join(opt.data_dir, 'RENDER', garment, '%d_0_00.png'%view_id)
             )
 
         img_tensor = []

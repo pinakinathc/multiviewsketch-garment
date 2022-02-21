@@ -34,12 +34,15 @@ Contributors:
 
 pinakinathc, tuangfeng, yulia, duygu, song
 
-### Few observations
+### Track experiments
 
-[17 December 2021]
-
-* starting with partial training from scratch leads to open meshes during generation. This is likely because the model never saw a full shirt and has no idea how it should look like.
-
-* I am training on both Siggraph15 dataset and adobe dataset together.
-
-* Focusing more on the normal setup (without partial supervision) for the old and new updater network
+- `model_A.py` -- Proposed method with Binary mask
+- `model_AA.py` -- Baseline method with Binary mask but first pass feat
+- `model_B.py` -- Baseline method with Sigmoid attention
+- `model_BB.py` -- Baseline method with Sigmoid but first pass feat
+- `model_C.py` -- Baseline method with Cross-Attention Binary Mask
+- `model_D.py` -- Baseline method with Max. Pooling
+- `model_E.py` -- Baseline method with Avg. Pooling
+- `model_F.py` -- Baseline method with Attention Pooling
+- `model_G.py` -- Baseline method with Concatenation
+- `model_H.py` -- Baseline method with RNN

@@ -15,11 +15,9 @@ class GarmentModel(pl.LightningModule):
         self.alignUpdater = AlignUpdater()
         self.decoder = Decoder()
         self.alphaClassifier = AlphaClassifier()
-        self.latent_feat = torch.nn.Parameter(torch.fmod(
-            torch.nn.init.normal_(torch.empty(512), mean=0.0, std=0.02), 2)).cuda()
 
-        self.softmax = torch.nn.Softmax()
         self.layer_norm = torch.nn.LayerNorm(512)
+        self.softmax = torch.nn.Softmax()
         self.criterion = torch.nn.L1Loss(reduction='none')
         self.criterion_alpha = torch.nn.CrossEntropyLoss()
         self.l1_reg_crit = torch.nn.L1Loss(size_average=False)
@@ -37,7 +35,6 @@ class GarmentModel(pl.LightningModule):
         all_alpha = torch.zeros((B, num_views, 512)).cuda()
         all_latent_feat = torch.zeros((B, num_views, 512)).cuda()
 
-        latent_feat = self.latent_feat.repeat(B, 1) # B x 512
         for vid in range(num_views):
             """ Get feature representation from image """
             img_feat = self.encoder(img[:, vid, :, :, :])
@@ -50,7 +47,12 @@ class GarmentModel(pl.LightningModule):
             """ Combine aligned features using Updater """
             attention = self.softmax(alpha / (torch.tensor(512**0.5).cuda()))
             all_alpha[:, vid, :] = attention
-            latent_feat = self.layer_norm(attention*aligned_feat + (attention.max() - attention)*latent_feat)
+            if vid == 0:
+                latent_feat = aligned_feat
+            else:
+                combined_feat = all_aligned_feat * all_alpha
+                latent_feat = torch.nn.functional.avg_pool1d(
+                    combined_feat[:, :vid, :].permute(0, 2, 1), vid)[:, :, 0]
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """
