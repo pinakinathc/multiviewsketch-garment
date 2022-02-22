@@ -48,7 +48,7 @@ class GarmentModel(pl.LightningModule):
                 latent_feat = aligned_feat
             else:
                 latent_feat = torch.nn.functional.max_pool1d(
-                    all_aligned_feat[:, :vid, :].permute(0, 2, 1), vid)[:, :, 0]
+                    (all_aligned_feat[:, :vid, :]*1).permute(0, 2, 1), vid)[:, :, 0]
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """

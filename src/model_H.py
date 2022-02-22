@@ -48,7 +48,7 @@ class GarmentModel(pl.LightningModule):
             if vid == 0:
                 latent_feat = aligned_feat
             else:
-                latent_feat = self.combine(all_aligned_feat[:, :vid, :])[0][:, -1, :]
+                latent_feat = self.combine((all_aligned_feat[:, :vid, :])*1.0)[0][:, -1, :]
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
 
             """ Predict SDF using Decoder """
