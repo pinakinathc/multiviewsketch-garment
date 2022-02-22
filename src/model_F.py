@@ -50,7 +50,7 @@ class GarmentModel(pl.LightningModule):
             if vid == 0:
                 latent_feat = aligned_feat
             else:
-                combined_feat = (all_aligned_feat * all_alpha)*1
+                combined_feat = (all_aligned_feat[:, :vid, :]*1.0) * (all_alpha[:, :vid, :]*1.0)
                 latent_feat = torch.nn.functional.avg_pool1d(
                     combined_feat[:, :vid, :].permute(0, 2, 1), vid)[:, :, 0]
             all_latent_feat[:, vid, :] = latent_feat # Shape of latent_feat: B x 512
