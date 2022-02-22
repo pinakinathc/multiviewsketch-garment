@@ -91,7 +91,7 @@ class GarmentModel(pl.LightningModule):
                 sdf[:, vid, :, :].reshape(-1, 1)) * mask[:, vid, :, :].reshape(-1, 1)).mean()
         
         self.log('val_sdf_loss', loss)
-        all_correct, total = 0, 0
+        all_correct, total = 0, 1
         self.log('val_loss', loss)
         return all_correct, total
 
