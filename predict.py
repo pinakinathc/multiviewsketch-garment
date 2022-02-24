@@ -19,7 +19,6 @@ from utils.error_surface import error_surface
 parser = argparse.ArgumentParser(description='Evaluate Multiview Garment Modeling')
 parser.add_argument('--model_name', type=str, default='model_A')
 parser.add_argument('--data_dir', type=str, default='/vol/research/NOBACKUP/CVSSP/scratch_4weeks/pinakiR/tmp_dataset/adobe_training_data/siga15/', help='enter data dir')
-parser.add_argument('--input_dir', type=str, default='output/11/', help='enter evaluation image path')
 parser.add_argument('--output_dir', type=str, help='enter output mesh path')
 parser.add_argument('--ckpt', type=str, default='saved_models_full/new_model_A_siga15_full.ckpt', help='enter model path')
 opt = parser.parse_args()
@@ -47,7 +46,7 @@ elif opt.model_name == 'model_I':
 else:
     raise ValueError('opts.model_name option wrong: %s'%opt.model_name)
 
-os.makedirs(os.path.join(opt.output_dir, opt.model_name), exist_ok=False)
+os.makedirs(os.path.join(opt.output_dir), exist_ok=False)
 
 # Image transforms
 scaler = transforms.Scale((224, 224))
