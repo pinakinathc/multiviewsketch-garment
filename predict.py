@@ -29,6 +29,8 @@ elif opt.model_name == 'model_AA':
     from src.model_AA import GarmentModel
 elif opt.model_name == 'model_B':
     from src.model_B import GarmentModel
+elif opt.model_name == 'model_BB':
+    from src.model_BB import GarmentModel
 elif opt.model_name == 'model_C':
     from src.model_C import GarmentModel
 elif opt.model_name == 'model_D':
