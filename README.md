@@ -23,7 +23,7 @@ Designing real and virtual garments is becoming extremely demanding with rapidly
 
 
 ### **Our envisioned User Interface**
-![Envisioned-User-Interface](/assets/assets/images/3DV22-teaser.png)
+![Envisioned-User-Interface](http://www.pinakinathc.me/assets/images/3DV22-teaser.png)
 
 ### **How to cite this dataset**
 ```
