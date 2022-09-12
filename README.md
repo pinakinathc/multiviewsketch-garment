@@ -15,7 +15,7 @@ Surrey Institute for People Centred AI
 
 **Published at 3DV 2022 ORAL**
 
-[[Paper]](http://www.pinakinathc.me/assets/papers/3DV_2022.pdf)
+[[Paper]](http://www.pinakinathc.me/assets/papers/3DV_2022.pdf) [[Supplemental]](http://www.pinakinathc.me/assets/papers/3DV_2022_supp.pdf)
 
 
 ### **Abstract**
