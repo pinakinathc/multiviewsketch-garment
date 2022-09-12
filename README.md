@@ -1,6 +1,41 @@
----
-Multiview Garment Modeling:
----
+# Garment Ideation: Iterative View-Aware Sketch-Based Garment Modeling
+
+### **Authors**
+
+**[Pinaki Nath Chowdhury](https://pinakinathc.me), [Tuanfeng Wang](tuanfeng.github.io/), [Duygu Ceylan](https://www.duygu-ceylan.com/), [Yi-Zhe Song](https://scholar.google.co.uk/citations?user=irZFP_AAAAAJ&hl=en), [Yulia Gryaditskaya](https://yulia.gryaditskaya.com/)**
+
+
+SketchX, Center for Vision Speech and Signal Processing
+
+University of Surrey, United Kingdom
+
+Adobe Research London, UK
+
+Surrey Institute for People Centred AI
+
+**Published at 3DV 2022 ORAL**
+
+[[Paper]](http://www.pinakinathc.me/assets/papers/3DV_2022.pdf)
+
+
+### **Abstract**
+Designing real and virtual garments is becoming extremely demanding with rapidly changing fashion trends and increasing need for synthesizing realistically dressed digital humans for various applications. However, traditionally designing real and virtual garments has been time-consuming. Sketch based modeling aims to bring the ease and immediacy of drawing to the 3D world thereby motivating faster iterations. We propose a novel sketch-based garment modeling framework that is specifically targeted to synchronize with the iterative process of garment ideation, e.g., adding or removing details from different views in each iteration. At the core of our learning based approach is a view-aware feature aggregation module that fuses the features from the latest sketch with the thus far aggregated features to effective refine the generated 3D shape. We evaluate our approach on a wide variety of garment types and iterative refinement scenarios. We also provide comparisons to alternative feature aggregation methods and demonstrate favorable results. 
+
+
+### **Our envisioned User Interface**
+![Envisioned-User-Interface](/assets/assets/images/3DV22-teaser.png)
+
+### **How to cite this dataset**
+```
+@inproceedings{chowdhury2022garment,
+    title={FS-COCO: Towards Understanding of Freehand Sketches of Common Objects in Context.}
+    author={Chowdhury, Pinaki Nath and Wang, Tuanfeng and Ceylan, Duygu and Song, Yi-Zhe and Gryaditskaya, Yulia},
+    booktitle={3DV},
+    year={2022}
+}
+```
+
+## Instructions
 
 how to setup:
 
@@ -8,41 +43,4 @@ how to setup:
 
 how to run:
 
-- `python pretrain.py` train the model first on consistent views
-
-- `python train.py` for training
-
-- `python eval.py` for testing
-
----
-Main Goal of this project:
----
-
-- Disentanglement: if we perform some edits on the back side of a shirt, it should not affect the front side as much as it changes the back-view.
-
-- Iterative Addition: We iteratively add strokes to a sketch, that should also improve folds in the shirt.
-
----
-Question:
----
-
-- How is it garment-specific?
-
----
-Contributors:
----
-
-pinakinathc, tuangfeng, yulia, duygu, song
-
-### Track experiments
-
-- `model_A.py` -- Proposed method with Binary mask
-- `model_AA.py` -- Baseline method with Binary mask but first pass feat
-- `model_B.py` -- Baseline method with Sigmoid attention
-- `model_BB.py` -- Baseline method with Sigmoid but first pass feat
-- `model_C.py` -- Baseline method with Cross-Attention Binary Mask
-- `model_D.py` -- Baseline method with Max. Pooling
-- `model_E.py` -- Baseline method with Avg. Pooling
-- `model_F.py` -- Baseline method with Attention Pooling
-- `model_G.py` -- Baseline method with Concatenation
-- `model_H.py` -- Baseline method with RNN
+- `python train.py --model_name=model_AA --exp_name=model_AA --data_dir=<path/to/dataset>`
