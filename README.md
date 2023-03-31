@@ -2,7 +2,7 @@
 
 ### **Authors**
 
-**[Pinaki Nath Chowdhury](https://pinakinathc.me), [Tuanfeng Wang](tuanfeng.github.io/), [Duygu Ceylan](https://www.duygu-ceylan.com/), [Yi-Zhe Song](https://scholar.google.co.uk/citations?user=irZFP_AAAAAJ&hl=en), [Yulia Gryaditskaya](https://yulia.gryaditskaya.com/)**
+**[Pinaki Nath Chowdhury](https://pinakinathc.me), [Tuanfeng Wang](https://tuanfeng.github.io/), [Duygu Ceylan](https://www.duygu-ceylan.com/), [Yi-Zhe Song](https://scholar.google.co.uk/citations?user=irZFP_AAAAAJ&hl=en), [Yulia Gryaditskaya](https://yulia.gryaditskaya.com/)**
 
 
 SketchX, Center for Vision Speech and Signal Processing
@@ -25,10 +25,10 @@ Designing real and virtual garments is becoming extremely demanding with rapidly
 ### **Our envisioned User Interface**
 ![Envisioned-User-Interface](http://www.pinakinathc.me/assets/images/3DV22-teaser.png)
 
-### **How to cite this dataset**
+### **How to cite this paper**
 ```
 @inproceedings{chowdhury2022garment,
-    title={FS-COCO: Towards Understanding of Freehand Sketches of Common Objects in Context.}
+    title={Garment Ideation: Iterative View-Aware Sketch-Based Garment Modeling}
     author={Chowdhury, Pinaki Nath and Wang, Tuanfeng and Ceylan, Duygu and Song, Yi-Zhe and Gryaditskaya, Yulia},
     booktitle={3DV},
     year={2022}
